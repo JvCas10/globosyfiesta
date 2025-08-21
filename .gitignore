@@ -1,0 +1,42 @@
+# Dependencias
+node_modules/
+*/node_modules/
+
+# Variables de entorno
+.env
+*/.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cache
+.npm
+.cache
+
+# Build
+build/
+dist/
+
+# Archivos temporales
+uploads/
+temp/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Specific backend
+backend/uploads/
+backend/.env
+
+# Specific frontend  
+frontend/build/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local

@@ -43,13 +43,13 @@ const Navbar = () => {
           </li>
         )}
 
-        {hasPermission('clientes') && (
+        {hasPermission('ventas') && (
           <li className="nav-item">
             <Link 
-              to="/clientes" 
-              className={`nav-link ${isActive('/clientes') ? 'active' : ''}`}
+              to="/pedidos" 
+              className={`nav-link ${isActive('/pedidos') ? 'active' : ''}`}
             >
-              👥 Clientes
+              📦 Pedidos
             </Link>
           </li>
         )}
@@ -57,10 +57,10 @@ const Navbar = () => {
         {hasPermission('ventas') && (
           <li className="nav-item">
             <Link 
-              to="/ventas" 
-              className={`nav-link ${isActive('/ventas') ? 'active' : ''}`}
+              to="/pos" 
+              className={`nav-link ${isActive('/pos') ? 'active' : ''}`}
             >
-              💰 Ventas
+              🏪 POS
             </Link>
           </li>
         )}

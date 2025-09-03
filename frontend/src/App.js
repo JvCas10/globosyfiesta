@@ -4,12 +4,19 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
+
+// Componentes de páginas
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Productos from './pages/Productos';
-import Clientes from './pages/Clientes';
-import Ventas from './pages/Ventas';
+import Pedidos from './pages/Pedidos';  // Reemplaza Clientes
+import POS from './pages/POS';          // Reemplaza Ventas
 import Reportes from './pages/Reportes';
+
+// Componentes públicos para clientes
+import ClientCatalog from './pages/ClientCatalog';
+import OrderTracking from './pages/OrderTracking';
+
 import './App.css';
 
 function App() {
@@ -18,62 +25,77 @@ function App() {
       <Router>
         <div className="App">
           <Routes>
-            {/* Ruta pública */}
+            {/* Rutas públicas para clientes */}
+            <Route path="/catalogo" element={<ClientCatalog />} />
+            <Route path="/seguimiento" element={<OrderTracking />} />
+            
+            {/* Ruta de login */}
             <Route path="/login" element={<Login />} />
             
-            {/* Rutas protegidas */}
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Navbar />
-                <div className="main-content">
-                  <Navigate to="/dashboard" replace />
-                </div>
-              </ProtectedRoute>
-            } />
-            
+            {/* Rutas protegidas para administradores */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Navbar />
-                <div className="main-content">
+                <main className="main-content">
                   <Dashboard />
-                </div>
+                </main>
               </ProtectedRoute>
             } />
             
             <Route path="/productos" element={
               <ProtectedRoute>
                 <Navbar />
-                <div className="main-content">
+                <main className="main-content">
                   <Productos />
-                </div>
+                </main>
               </ProtectedRoute>
             } />
             
-            <Route path="/clientes" element={
+            <Route path="/pedidos" element={
               <ProtectedRoute>
                 <Navbar />
-                <div className="main-content">
-                  <Clientes />
-                </div>
+                <main className="main-content">
+                  <Pedidos />
+                </main>
               </ProtectedRoute>
             } />
             
-            <Route path="/ventas" element={
+            <Route path="/pos" element={
               <ProtectedRoute>
                 <Navbar />
-                <div className="main-content">
-                  <Ventas />
-                </div>
+                <main className="main-content">
+                  <POS />
+                </main>
               </ProtectedRoute>
             } />
             
             <Route path="/reportes" element={
               <ProtectedRoute>
                 <Navbar />
-                <div className="main-content">
+                <main className="main-content">
                   <Reportes />
-                </div>
+                </main>
               </ProtectedRoute>
+            } />
+            
+            {/* Redirecciones */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            
+            {/* Ruta 404 */}
+            <Route path="*" element={
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                height: '100vh',
+                flexDirection: 'column' 
+              }}>
+                <h1>404 - Página no encontrada</h1>
+                <p>La página que buscas no existe.</p>
+                <a href="/" style={{ color: '#3498db', textDecoration: 'none' }}>
+                  Volver al inicio
+                </a>
+              </div>
             } />
           </Routes>
         </div>

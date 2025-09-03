@@ -24,3 +24,9 @@ npm install
 cp .env.example .env
 # Configurar variables en .env
 npm run dev
+```
+### Frontend
+```bash
+cd frontend
+npm install
+npm start

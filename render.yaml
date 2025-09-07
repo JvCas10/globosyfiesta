@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: globos-y-fiesta-api
+    env: node
+    plan: free
+    rootDir: ./backend           # ← CLAVE: le dice a Render que vaya al folder backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        fromService:
+          type: web
+          name: globos-y-fiesta-api
+          property: port
+    # Variables de entorno que debes configurar manualmente en el dashboard:
+    # - MONGO_URI=mongodb+srv://globosuser:globos123456@globos-y-fiesta.yloysjz.mongodb.net/?retryWrites=true&w=majority&appName=globos-y-fiesta
+    # - JWT_SECRET=globos-y-fiesta-secreto-super-seguro-2025
+    # - CLOUDINARY_CLOUD_NAME=dh0pbuieu
+    # - CLOUDINARY_API_KEY=772332791948534
+    # - CLOUDINARY_API_SECRET=BZLqoOx9Af-YZRTxhgAcKBBZfIg
+    # - FRONTEND_URL=https://tu-frontend.onrender.com

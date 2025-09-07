@@ -3,18 +3,44 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
 require('dotenv').config();
 
 const app = express();
 
-// Middlewares
-app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true
+// Security middleware
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
+app.use(compression());
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// CORS configuration for production
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigins = [
+            process.env.FRONTEND_URL,
+            'http://localhost:3000', // Para desarrollo local
+            'http://localhost:3001'  // Por si usas otro puerto
+        ].filter(Boolean); // Remover valores undefined/null
+        
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('No permitido por CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Crear directorio uploads si no existe
 const fs = require('fs');
@@ -23,21 +49,39 @@ if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Conexión a MongoDB
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log('✅ Conectado a MongoDB Atlas - Globos y Fiesta');
-    })
-    .catch((error) => {
-        console.error('❌ Error conectando a MongoDB:', error);
+// Conexión a MongoDB con opciones de producción
+const connectDB = async () => {
+    try {
+        const conn = await mongoose.connect(process.env.MONGO_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+        console.log(`✅ Conectado a MongoDB: ${conn.connection.host}`);
+    } catch (error) {
+        console.error('❌ Error conectando a MongoDB:', error.message);
+        // En producción, salir si no se puede conectar a la DB
         process.exit(1);
-    });
+    }
+};
 
-// Rutas básicas
+// Conectar a la base de datos
+connectDB();
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
+// Ruta raíz con información de la API
 app.get('/', (req, res) => {
     res.json({
         message: '🎈 API de Globos y Fiesta funcionando correctamente',
         version: '2.0.0',
+        environment: process.env.NODE_ENV,
         timestamp: new Date().toISOString(),
         endpoints: {
             admin: {
@@ -48,7 +92,7 @@ app.get('/', (req, res) => {
                 pedidos: '/api/pedidos/admin'
             },
             client: {
-                catalog: '/api/productos (public)',
+                catalog: '/api/catalog',
                 orders: '/api/pedidos',
                 tracking: '/api/pedidos/seguimiento/:codigo'
             }
@@ -61,7 +105,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/productos', require('./routes/productos'));
 app.use('/api/ventas', require('./routes/ventas'));
 app.use('/api/reportes', require('./routes/reportes'));
-app.use('/api/pedidos', require('./routes/pedidos')); // Nueva ruta para pedidos
+app.use('/api/pedidos', require('./routes/pedidos'));
 
 // Ruta pública para el catálogo de productos (para clientes)
 app.get('/api/catalog', async (req, res) => {
@@ -86,9 +130,14 @@ app.get('/api/catalog', async (req, res) => {
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
     console.error('❌ Error:', err.stack);
-    res.status(500).json({
-        error: 'Algo salió mal en el servidor',
-        message: process.env.NODE_ENV === 'development' ? err.message : 'Error interno del servidor'
+    
+    // No exponer stack traces en producción
+    const isDev = process.env.NODE_ENV === 'development';
+    
+    res.status(err.status || 500).json({
+        error: 'Error interno del servidor',
+        message: isDev ? err.message : 'Algo salió mal',
+        ...(isDev && { stack: err.stack })
     });
 });
 
@@ -101,12 +150,34 @@ app.use('*', (req, res) => {
     });
 });
 
+// Configuración del puerto
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-    console.log(`🌐 URL: http://localhost:${PORT}`);
+    console.log(`🌍 Entorno: ${process.env.NODE_ENV}`);
     console.log(`🎈 Sistema: Globos y Fiesta v2.0`);
     console.log(`📱 Vista Cliente: Catálogo público disponible`);
     console.log(`🔧 Vista Admin: Dashboard y gestión completa`);
 });
+
+// Manejo de cierre graceful
+process.on('SIGTERM', () => {
+    console.log('👋 SIGTERM recibido. Cerrando servidor...');
+    server.close(() => {
+        console.log('✅ Servidor cerrado correctamente');
+        mongoose.connection.close();
+        process.exit(0);
+    });
+});
+
+process.on('SIGINT', () => {
+    console.log('👋 SIGINT recibido. Cerrando servidor...');
+    server.close(() => {
+        console.log('✅ Servidor cerrado correctamente');
+        mongoose.connection.close();
+        process.exit(0);
+    });
+});
+
+module.exports = app;

@@ -24,6 +24,8 @@ exports.crearPedido = async (req, res) => {
             notasCliente
         } = req.body;
 
+
+
         // Validar que hay items
         if (!items || items.length === 0) {
             return res.status(400).json({
@@ -38,7 +40,7 @@ exports.crearPedido = async (req, res) => {
 
         for (const item of items) {
             const producto = await Product.findById(item.producto);
-            
+
             if (!producto) {
                 return res.status(400).json({
                     error: 'Producto no encontrado',
@@ -73,7 +75,15 @@ exports.crearPedido = async (req, res) => {
             subtotal += itemValidado.subtotal;
         }
 
-        // Crear el pedido (el código se genera automáticamente en el modelo)
+        // Generar código de seguimiento manualmente
+        const codigoSeguimiento = Math.floor(100000 + Math.random() * 900000).toString();
+
+        let usuarioId = null;
+        if (req.user && req.user.rol === 'cliente') {
+            usuarioId = req.user._id;
+        }
+        
+        // Crear el pedido
         const nuevoPedido = new Order({
             cliente: {
                 nombre: cliente.nombre.trim(),
@@ -83,7 +93,8 @@ exports.crearPedido = async (req, res) => {
             items: itemsValidados,
             subtotal,
             total: subtotal,
-            notasCliente: notasCliente?.trim()
+            notasCliente: notasCliente?.trim(),
+            codigoSeguimiento: codigoSeguimiento  // Agregar código manualmente
         });
 
         // Guardar el pedido
@@ -113,7 +124,7 @@ exports.crearPedido = async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error al crear pedido:', error);
-        
+
         // Si es un error de validación de MongoDB
         if (error.name === 'ValidationError') {
             const errorMessages = Object.values(error.errors).map(err => err.message);
@@ -236,7 +247,7 @@ exports.buscarPorCodigo = async (req, res) => {
             });
         }
 
-        res.json({ 
+        res.json({
             success: true,
             pedido: {
                 numero: pedido.numero,
@@ -268,7 +279,7 @@ exports.actualizarEstado = async (req, res) => {
         const { estado, notasAdmin } = req.body;
 
         const estadosValidos = ['en-proceso', 'cancelado', 'listo-entrega', 'entregado'];
-        
+
         if (!estadosValidos.includes(estado)) {
             return res.status(400).json({
                 error: 'Estado inválido',
@@ -412,7 +423,7 @@ exports.estadisticasPedidos = async (req, res) => {
 
         // Pedidos del día
         const pedidosHoy = await Order.pedidosDelDia(hoy);
-        
+
         // Pedidos del mes
         const pedidosMes = await Order.find({
             fechaPedido: { $gte: inicioMes }

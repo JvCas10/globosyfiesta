@@ -27,11 +27,8 @@ const userSchema = new mongoose.Schema({
     },
     rol: {
         type: String,
-        enum: {
-            values: ['propietario', 'empleado'],
-            message: 'El rol debe ser propietario o empleado'
-        },
-        default: 'empleado'
+        enum: ['propietario', 'empleado', 'cliente'], // Agregar 'cliente'
+        default: 'cliente' // Cambiar default a 'cliente'
     },
     telefono: {
         type: String,
@@ -41,6 +38,10 @@ const userSchema = new mongoose.Schema({
     activo: {
         type: Boolean,
         default: true
+    },
+    emailVerificado: {
+        type: Boolean,
+        default: false
     },
     // Permisos específicos para empleados
     permisos: {
@@ -82,10 +83,10 @@ const userSchema = new mongoose.Schema({
 });
 
 // Middleware para encriptar password antes de guardar
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
     // Solo hashear la contraseña si ha sido modificada
     if (!this.isModified('password')) return next();
-    
+
     try {
         // Hash de la contraseña con salt de 12
         const salt = await bcrypt.genSalt(12);
@@ -97,33 +98,45 @@ userSchema.pre('save', async function(next) {
 });
 
 // Método para comparar contraseñas
-userSchema.methods.compararPassword = async function(passwordIngresada) {
+userSchema.methods.compararPassword = async function (passwordIngresada) {
     return await bcrypt.compare(passwordIngresada, this.password);
 };
 
 // Método para actualizar último acceso
-userSchema.methods.actualizarUltimoAcceso = function() {
+userSchema.methods.actualizarUltimoAcceso = function () {
     this.ultimoAcceso = new Date();
     return this.save({ validateBeforeSave: false });
 };
 
 // Método para verificar si es propietario
-userSchema.methods.esPropietario = function() {
+userSchema.methods.esPropietario = function () {
     return this.rol === 'propietario';
 };
 
 // Método para verificar permisos
-userSchema.methods.tienePermiso = function(permiso) {
+userSchema.methods.tienePermiso = function (permiso) {
     if (this.rol === 'propietario') return true;
     return this.permisos[permiso] || false;
 };
 
 // Método para obtener datos seguros (sin password)
-userSchema.methods.datosSegurosPerfil = function() {
-    const user = this.toObject();
-    delete user.password;
-    return user;
+userSchema.methods.datosSegurosPerfil = function () {
+    return {
+        _id: this._id,
+        nombre: this.nombre,
+        email: this.email,
+        telefono: this.telefono,
+        rol: this.rol,
+        emailVerificado: this.emailVerificado, // Agregar esta línea
+        fechaRegistro: this.fechaRegistro,
+        ultimoAcceso: this.ultimoAcceso,
+        activo: this.activo,
+        permisos: this.permisos
+    };
 };
+
+
+
 
 // Índices
 userSchema.index({ email: 1 });

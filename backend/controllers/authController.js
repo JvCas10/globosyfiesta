@@ -61,7 +61,10 @@ exports.registro = async (req, res) => {
                 configuracion: false
             };
         }
-
+        if (rolFinal === 'cliente') {
+            // Los clientes no tienen permisos administrativos
+            nuevoUsuario.permisos = {};
+        }
         await nuevoUsuario.save();
 
         // Generar token
@@ -154,7 +157,7 @@ exports.login = async (req, res) => {
 exports.perfil = async (req, res) => {
     try {
         const usuario = await User.findById(req.user.id).select('-password');
-        
+
         if (!usuario) {
             return res.status(404).json({
                 error: 'Usuario no encontrado'
@@ -181,11 +184,11 @@ exports.actualizarPerfil = async (req, res) => {
 
         // Verificar si el nuevo email ya existe (si se está cambiando)
         if (email && email.toLowerCase() !== req.user.email) {
-            const emailExistente = await User.findOne({ 
+            const emailExistente = await User.findOne({
                 email: email.toLowerCase(),
                 _id: { $ne: userId }
             });
-            
+
             if (emailExistente) {
                 return res.status(400).json({
                     error: 'Email ya existe',
@@ -243,7 +246,7 @@ exports.cambiarPassword = async (req, res) => {
 
         // Obtener usuario con contraseña
         const usuario = await User.findById(userId);
-        
+
         // Verificar contraseña actual
         const passwordValida = await usuario.compararPassword(passwordActual);
         if (!passwordValida) {
@@ -284,6 +287,66 @@ exports.verificarToken = async (req, res) => {
         res.status(401).json({
             valid: false,
             error: 'Token inválido'
+        });
+    }
+};
+
+// Registro específico para clientes
+// Registro específico para clientes (público)
+exports.registroCliente = async (req, res) => {
+    try {
+        console.log('🟡 Registro de cliente:', req.body);
+
+        // Validar errores de express-validator
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                error: 'Datos inválidos',
+                details: errors.array(),
+                message: 'Por favor corrige los errores en el formulario'
+            });
+        }
+
+        const { nombre, email, password, telefono } = req.body;
+
+        // Verificar si ya existe
+        const usuarioExistente = await User.findOne({ email: email.toLowerCase() });
+        if (usuarioExistente) {
+            return res.status(400).json({
+                error: 'Usuario ya existe',
+                message: 'Ya existe una cuenta con este email'
+            });
+        }
+
+        // Crear cliente (sin permisos administrativos)
+        const nuevoCliente = new User({
+            nombre: nombre.trim(),
+            email: email.toLowerCase().trim(),
+            password,
+            telefono: telefono.trim(),
+            rol: 'cliente',
+            activo: true
+            // Sin permisos - los clientes no necesitan permisos administrativos
+        });
+
+        await nuevoCliente.save();
+
+        // Generar token
+        const token = generateToken(nuevoCliente._id);
+
+        console.log('✅ Cliente registrado exitosamente:', nuevoCliente.email);
+
+        res.status(201).json({
+            message: 'Cuenta creada exitosamente',
+            token,
+            user: nuevoCliente.datosSegurosPerfil()
+        });
+
+    } catch (error) {
+        console.error('❌ Error en registro de cliente:', error);
+        res.status(500).json({
+            error: 'Error interno del servidor',
+            message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
         });
     }
 };

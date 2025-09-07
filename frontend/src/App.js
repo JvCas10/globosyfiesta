@@ -2,15 +2,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import Navbar from './components/Navbar';
 
 // Componentes de páginas
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Productos from './pages/Productos';
-import Pedidos from './pages/Pedidos';  // Reemplaza Clientes
-import POS from './pages/POS';          // Reemplaza Ventas
+import Pedidos from './pages/Pedidos';
+import POS from './pages/POS';
 import Reportes from './pages/Reportes';
 
 // Componentes públicos para clientes
@@ -25,61 +25,63 @@ function App() {
       <Router>
         <div className="App">
           <Routes>
+            {/* Ruta principal - redirige al catálogo público */}
+            <Route path="/" element={<Navigate to="/catalogo" replace />} />
+            
             {/* Rutas públicas para clientes */}
             <Route path="/catalogo" element={<ClientCatalog />} />
             <Route path="/seguimiento" element={<OrderTracking />} />
             
-            {/* Ruta de login */}
+            {/* Login para administradores */}
             <Route path="/login" element={<Login />} />
+            <Route path="/admin" element={<Login />} />
+            <Route path="/admin-login" element={<Login />} />
             
             {/* Rutas protegidas para administradores */}
             <Route path="/dashboard" element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Navbar />
                 <main className="main-content">
                   <Dashboard />
                 </main>
-              </ProtectedRoute>
+              </AdminRoute>
             } />
             
             <Route path="/productos" element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Navbar />
                 <main className="main-content">
                   <Productos />
                 </main>
-              </ProtectedRoute>
+              </AdminRoute>
             } />
             
             <Route path="/pedidos" element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Navbar />
                 <main className="main-content">
                   <Pedidos />
                 </main>
-              </ProtectedRoute>
+              </AdminRoute>
             } />
             
             <Route path="/pos" element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Navbar />
                 <main className="main-content">
                   <POS />
                 </main>
-              </ProtectedRoute>
+              </AdminRoute>
             } />
             
             <Route path="/reportes" element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Navbar />
                 <main className="main-content">
                   <Reportes />
                 </main>
-              </ProtectedRoute>
+              </AdminRoute>
             } />
-            
-            {/* Redirecciones */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             
             {/* Ruta 404 */}
             <Route path="*" element={
@@ -88,13 +90,54 @@ function App() {
                 justifyContent: 'center', 
                 alignItems: 'center', 
                 height: '100vh',
-                flexDirection: 'column' 
+                flexDirection: 'column',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                textAlign: 'center',
+                padding: '20px'
               }}>
-                <h1>404 - Página no encontrada</h1>
-                <p>La página que buscas no existe.</p>
-                <a href="/" style={{ color: '#3498db', textDecoration: 'none' }}>
-                  Volver al inicio
-                </a>
+                <div style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  padding: '40px',
+                  borderRadius: '15px',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <h1 style={{ fontSize: '72px', margin: '0 0 20px 0' }}>404</h1>
+                  <h2 style={{ margin: '0 0 15px 0' }}>Página no encontrada</h2>
+                  <p style={{ margin: '0 0 25px 0', opacity: 0.9 }}>
+                    La página que buscas no existe.
+                  </p>
+                  <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <a 
+                      href="/catalogo" 
+                      style={{ 
+                        color: 'white', 
+                        textDecoration: 'none',
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '10px 20px',
+                        borderRadius: '25px',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      🛍️ Ir al Catálogo
+                    </a>
+                    <a 
+                      href="/admin" 
+                      style={{ 
+                        color: 'white', 
+                        textDecoration: 'none',
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '10px 20px',
+                        borderRadius: '25px',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      🛡️ Acceso Admin
+                    </a>
+                  </div>
+                </div>
               </div>
             } />
           </Routes>
@@ -104,4 +147,4 @@ function App() {
   );
 }
 
-export default App;
+export default App

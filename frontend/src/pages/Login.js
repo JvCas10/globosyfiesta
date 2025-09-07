@@ -1,6 +1,6 @@
 // frontend/src/pages/Login.js
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
@@ -9,12 +9,20 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { login, isAuthenticated } = useAuth();
+  const { login, user } = useAuth();
 
-  // Redirigir si ya está autenticado
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // Redirigir según el rol del usuario
+  useEffect(() => {
+    if (user) {
+      if (user.rol === 'propietario' || user.rol === 'empleado') {
+        // Admin va al dashboard
+        window.location.href = '/dashboard';
+      } else if (user.rol === 'cliente') {
+        // Cliente va al catálogo
+        window.location.href = '/catalogo';
+      }
+    }
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,15 +45,45 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <form className="login-form" onSubmit={handleSubmit}>
-        <h2>🎈 Globos y Fiesta</h2>
-        <p style={{ textAlign: 'center', marginBottom: '30px', color: '#7f8c8d' }}>
-          Iniciar Sesión
-        </p>
+    <div className="login-container" style={{
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      minHeight: '100vh'
+    }}>
+      <form className="login-form" onSubmit={handleSubmit} style={{
+        background: 'white',
+        borderRadius: '15px',
+        boxShadow: '0 15px 35px rgba(0,0,0,0.1)'
+      }}>
+        {/* Header mejorado */}
+        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 20px',
+            fontSize: '30px'
+          }}>
+            🛡️
+          </div>
+          <h2>🎈 Globos y Fiesta</h2>
+          <p style={{ textAlign: 'center', marginBottom: '0', color: '#7f8c8d' }}>
+            Panel Administrativo
+          </p>
+        </div>
 
         {error && (
-          <div className="alert alert-error">
+          <div className="alert alert-error" style={{
+            background: '#fee',
+            color: '#c33',
+            padding: '12px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            border: '1px solid #fcc'
+          }}>
             {error}
           </div>
         )}
@@ -58,7 +96,7 @@ const Login = () => {
             className="form-control"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="tu-email@ejemplo.com"
+            placeholder="admin@globosyfiesta.com"
             disabled={loading}
             autoComplete="email"
           />
@@ -81,16 +119,42 @@ const Login = () => {
         <button 
           type="submit" 
           className="btn btn-primary"
-          style={{ width: '100%' }}
+          style={{ 
+            width: '100%',
+            background: loading 
+              ? '#bdc3c7' 
+              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: 'none',
+            padding: '15px',
+            fontWeight: 'bold'
+          }}
           disabled={loading}
         >
           {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
         </button>
 
+        {/* Información de prueba */}
         <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px', color: '#7f8c8d' }}>
           <p>Usuario de prueba:</p>
           <p><strong>Email:</strong> propietario@globosyfiesta.com</p>
           <p><strong>Contraseña:</strong> 123456</p>
+        </div>
+
+        {/* Enlace al catálogo */}
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <Link 
+            to="/catalogo" 
+            style={{
+              color: '#667eea',
+              textDecoration: 'none',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            ← Ver Catálogo de Productos
+          </Link>
         </div>
       </form>
     </div>

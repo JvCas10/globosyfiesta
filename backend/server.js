@@ -35,7 +35,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Rutas básicas
 app.get('/', (req, res) => {
-    res.json({ 
+    res.json({
         message: '🎈 API de Globos y Fiesta funcionando correctamente',
         version: '2.0.0',
         timestamp: new Date().toISOString(),
@@ -70,7 +70,7 @@ app.get('/api/catalog', async (req, res) => {
         const productos = await Product.find({ activo: true })
             .select('nombre descripcion categoria precioVenta stock imagenUrl color tamaño tipoGlobo')
             .sort({ categoria: 1, nombre: 1 });
-        
+
         res.json({
             success: true,
             productos
@@ -86,7 +86,7 @@ app.get('/api/catalog', async (req, res) => {
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
     console.error('❌ Error:', err.stack);
-    res.status(500).json({ 
+    res.status(500).json({
         error: 'Algo salió mal en el servidor',
         message: process.env.NODE_ENV === 'development' ? err.message : 'Error interno del servidor'
     });
@@ -94,7 +94,7 @@ app.use((err, req, res, next) => {
 
 // Ruta 404
 app.use('*', (req, res) => {
-    res.status(404).json({ 
+    res.status(404).json({
         error: 'Ruta no encontrada',
         path: req.originalUrl,
         suggestion: 'Consulta la documentación de la API en la ruta raíz /'

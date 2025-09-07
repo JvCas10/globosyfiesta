@@ -1,6 +1,7 @@
 // frontend/src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import config from '../config';
 
 const AuthContext = createContext();
 
@@ -11,6 +12,10 @@ export const useAuth = () => {
   }
   return context;
 };
+
+// Configurar axios con la URL base
+axios.defaults.baseURL = config.API_BASE_URL;
+axios.defaults.timeout = config.DEFAULT_TIMEOUT;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -73,46 +78,24 @@ export const AuthProvider = ({ children }) => {
     delete axios.defaults.headers.common['Authorization'];
   };
 
-  // Registro
-  const register = async (userData) => {
-    try {
-      const response = await axios.post('/api/auth/registro', userData);
-      
-      const { token: newToken, user: newUser } = response.data;
-      
-      setToken(newToken);
-      setUser(newUser);
-      localStorage.setItem('token', newToken);
-      
-      return { success: true };
-    } catch (error) {
-      const message = error.response?.data?.message || 'Error al registrar usuario';
-      return { success: false, error: message };
-    }
-  };
+  // Verificar si está autenticado
+  const isAuthenticated = !!user;
 
-  // Verificar permisos
+  // Verificar permisos (función helper)
   const hasPermission = (permission) => {
     if (!user) return false;
     if (user.rol === 'propietario') return true;
-    return user.permisos && user.permisos[permission];
-  };
-
-  // Verificar si es propietario
-  const isOwner = () => {
-    return user && user.rol === 'propietario';
+    return user.permisos?.includes(permission) || false;
   };
 
   const value = {
     user,
-    token,
-    loading,
     login,
     logout,
-    register,
+    loading,
+    isAuthenticated,
     hasPermission,
-    isOwner,
-    isAuthenticated: !!user
+    token
   };
 
   return (

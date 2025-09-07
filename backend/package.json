@@ -24,7 +24,8 @@
     "express-validator": "^7.0.1",
     "express-rate-limit": "^6.8.1",
     "helmet": "^7.0.0",
-    "compression": "^1.7.4"
+    "compression": "^1.7.4",
+    "nodemailer": "^6.9.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
@@ -37,6 +38,6 @@
     "fiesta",
     "ecommerce"
   ],
-  "author": "Tu Nombre",
+  "author": "Vic, Marco, Brayan, Sebas",
   "license": "ISC"
 }

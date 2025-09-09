@@ -271,7 +271,7 @@ const ClientCatalog = () => {
   };
 
   // ========== FUNCIONES DE AUTENTICACIÓN ==========
-  
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -397,7 +397,7 @@ const ClientCatalog = () => {
             <h1>🎈 Globos y Fiesta</h1>
             <p>Todo para hacer tu celebración especial</p>
           </div>
-          
+
           <div className="header-actions">
             {user ? (
               <div className="user-menu">
@@ -422,7 +422,7 @@ const ClientCatalog = () => {
                 </button>
               </div>
             )}
-            
+
             <button
               onClick={() => setMostrarCarrito(true)}
               className="btn btn-cart"
@@ -483,13 +483,14 @@ const ClientCatalog = () => {
         ) : (
           productosFiltrados.map(producto => (
             <div key={producto._id} className="producto-card">
-              {producto.imagenUrl && (
-                <img
-                  src={producto.imagenUrl}
-                  alt={producto.nombre}
-                  className="producto-imagen"
-                />
-              )}
+              <img
+                src={producto.imagenUrl || '/NoImagen.jpg'}
+                alt={producto.nombre}
+                className="producto-imagen"
+                onError={(e) => {
+                  e.target.src = '/NoImagen.jpg';
+                }}
+              />
               <div className="producto-info">
                 <h3>{producto.nombre}</h3>
                 <p className="producto-descripcion">{producto.descripcion}</p>
@@ -518,7 +519,7 @@ const ClientCatalog = () => {
               <h3>🛒 Tu Carrito</h3>
               <button className="btn-close" onClick={() => setMostrarCarrito(false)}>×</button>
             </div>
-            
+
             <div className="modal-body">
               {carrito.length === 0 ? (
                 <p>Tu carrito está vacío</p>
@@ -556,14 +557,14 @@ const ClientCatalog = () => {
                       </div>
                     </div>
                   ))}
-                  
+
                   <div className="carrito-total">
                     <h3>Total: Q{calcularTotal().toFixed(2)}</h3>
                   </div>
                 </>
               )}
             </div>
-            
+
             <div className="modal-footer">
               <button
                 onClick={() => setMostrarCarrito(false)}
@@ -595,7 +596,7 @@ const ClientCatalog = () => {
               <h3>📝 Finalizar Pedido</h3>
               <button className="btn-close" onClick={() => setMostrarCheckout(false)}>×</button>
             </div>
-            
+
             <form onSubmit={procesarPedido}>
               <div className="modal-body">
                 <div className="checkout-section">
@@ -618,7 +619,7 @@ const ClientCatalog = () => {
                     <input
                       type="text"
                       value={clienteData.nombre}
-                      onChange={(e) => setClienteData({...clienteData, nombre: e.target.value})}
+                      onChange={(e) => setClienteData({ ...clienteData, nombre: e.target.value })}
                       placeholder="Tu nombre completo"
                       required
                       className="form-input"
@@ -630,7 +631,7 @@ const ClientCatalog = () => {
                     <input
                       type="tel"
                       value={clienteData.telefono}
-                      onChange={(e) => setClienteData({...clienteData, telefono: e.target.value})}
+                      onChange={(e) => setClienteData({ ...clienteData, telefono: e.target.value })}
                       placeholder="12345678"
                       required
                       className="form-input"
@@ -642,7 +643,7 @@ const ClientCatalog = () => {
                     <input
                       type="email"
                       value={clienteData.email}
-                      onChange={(e) => setClienteData({...clienteData, email: e.target.value})}
+                      onChange={(e) => setClienteData({ ...clienteData, email: e.target.value })}
                       placeholder="tu@email.com"
                       className="form-input"
                     />
@@ -652,7 +653,7 @@ const ClientCatalog = () => {
                     <label>Notas del Pedido (opcional)</label>
                     <textarea
                       value={clienteData.notas}
-                      onChange={(e) => setClienteData({...clienteData, notas: e.target.value})}
+                      onChange={(e) => setClienteData({ ...clienteData, notas: e.target.value })}
                       placeholder="Instrucciones especiales, colores preferidos, etc."
                       className="form-textarea"
                       rows="3"
@@ -660,7 +661,7 @@ const ClientCatalog = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="modal-footer">
                 <button
                   type="button"
@@ -690,7 +691,7 @@ const ClientCatalog = () => {
               <h3>🔐 Iniciar Sesión</h3>
               <button className="btn-close" onClick={() => setMostrarLogin(false)}>×</button>
             </div>
-            
+
             <div className="modal-body">
               {error && (
                 <div style={{
@@ -711,7 +712,7 @@ const ClientCatalog = () => {
                   <input
                     type="email"
                     value={loginData.email}
-                    onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                     placeholder="tu@email.com"
                     required
                     className="form-input"
@@ -723,7 +724,7 @@ const ClientCatalog = () => {
                   <input
                     type="password"
                     value={loginData.password}
-                    onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                     placeholder="Tu contraseña"
                     required
                     className="form-input"
@@ -798,7 +799,7 @@ const ClientCatalog = () => {
               <h3>📝 Crear Cuenta</h3>
               <button className="btn-close" onClick={() => setMostrarRegistro(false)}>×</button>
             </div>
-            
+
             <div className="modal-body">
               {error && (
                 <div style={{
@@ -819,7 +820,7 @@ const ClientCatalog = () => {
                   <input
                     type="text"
                     value={registroData.nombre}
-                    onChange={(e) => setRegistroData({...registroData, nombre: e.target.value})}
+                    onChange={(e) => setRegistroData({ ...registroData, nombre: e.target.value })}
                     placeholder="Tu nombre completo"
                     required
                     className="form-input"
@@ -831,7 +832,7 @@ const ClientCatalog = () => {
                   <input
                     type="email"
                     value={registroData.email}
-                    onChange={(e) => setRegistroData({...registroData, email: e.target.value})}
+                    onChange={(e) => setRegistroData({ ...registroData, email: e.target.value })}
                     placeholder="tu@email.com"
                     required
                     className="form-input"
@@ -843,7 +844,7 @@ const ClientCatalog = () => {
                   <input
                     type="password"
                     value={registroData.password}
-                    onChange={(e) => setRegistroData({...registroData, password: e.target.value})}
+                    onChange={(e) => setRegistroData({ ...registroData, password: e.target.value })}
                     placeholder="Mínimo 6 caracteres"
                     minLength="6"
                     required
@@ -856,7 +857,7 @@ const ClientCatalog = () => {
                   <input
                     type="tel"
                     value={registroData.telefono}
-                    onChange={(e) => setRegistroData({...registroData, telefono: e.target.value})}
+                    onChange={(e) => setRegistroData({ ...registroData, telefono: e.target.value })}
                     placeholder="12345678"
                     required
                     className="form-input"

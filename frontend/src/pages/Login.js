@@ -1,162 +1,140 @@
 // frontend/src/pages/Login.js
 import React, { useState, useEffect } from 'react';
-import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Navigate } from 'react-router-dom';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const { login, logout, user, isAuthenticated } = useAuth();
 
-  const { login, user } = useAuth();
-
-  // Redirigir según el rol del usuario
+  // Logout automático al acceder a la página de login
   useEffect(() => {
-    if (user) {
-      if (user.rol === 'propietario' || user.rol === 'empleado') {
-        // Admin va al dashboard
-        window.location.href = '/dashboard';
-      } else if (user.rol === 'cliente') {
-        // Cliente va al catálogo
-        window.location.href = '/catalogo';
-      }
+    if (isAuthenticated) {
+      logout();
+      console.log('Sesión cerrada automáticamente al acceder al login');
     }
-  }, [user]);
+  }, []); // Solo se ejecuta una vez al montar el componente
+
+  // Si el usuario está autenticado después del login exitoso, redirigir
+  if (user && user.rol === 'propietario') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  if (user && user.rol === 'empleado') {
+    return <Navigate to="/pos" replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setLoading(true);
 
-    if (!email || !password) {
-      setError('Por favor completa todos los campos');
+    try {
+      const result = await login(email, password);
+      
+      if (result.success) {
+        // La redirección se maneja arriba con Navigate
+        console.log('Login exitoso');
+      } else {
+        setError(result.error || 'Error al iniciar sesión');
+      }
+    } catch (error) {
+      setError('Error de conexión. Intenta nuevamente.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const result = await login(email, password);
-    
-    if (!result.success) {
-      setError(result.error);
-    }
-    
-    setLoading(false);
   };
 
   return (
-    <div className="login-container" style={{
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      minHeight: '100vh'
-    }}>
-      <form className="login-form" onSubmit={handleSubmit} style={{
-        background: 'white',
-        borderRadius: '15px',
-        boxShadow: '0 15px 35px rgba(0,0,0,0.1)'
-      }}>
-        {/* Header mejorado */}
+    <div className="login-container">
+      <div className="login-form">
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 20px',
-            fontSize: '30px'
-          }}>
-            🛡️
-          </div>
-          <h2>🎈 Globos y Fiesta</h2>
-          <p style={{ textAlign: 'center', marginBottom: '0', color: '#7f8c8d' }}>
-            Panel Administrativo
-          </p>
+          <h1 style={{ color: '#2c3e50', marginBottom: '10px' }}>🎈 Globos y Fiesta</h1>
+          <h2 style={{ color: '#7f8c8d', fontSize: '18px', fontWeight: 'normal' }}>
+            Panel de Administración
+          </h2>
         </div>
 
         {error && (
-          <div className="alert alert-error" style={{
-            background: '#fee',
-            color: '#c33',
+          <div style={{
+            background: '#ffebee',
+            color: '#c62828',
             padding: '12px',
-            borderRadius: '8px',
+            borderRadius: '4px',
             marginBottom: '20px',
-            border: '1px solid #fcc'
+            border: '1px solid #ffcdd2'
           }}>
             {error}
           </div>
         )}
 
-        <div className="form-group">
-          <label htmlFor="email">Email:</label>
-          <input
-            type="email"
-            id="email"
-            className="form-control"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@globosyfiesta.com"
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="email">Email:</label>
+            <input
+              type="email"
+              id="email"
+              className="form-control"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="Ingresa tu email"
+              disabled={loading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Contraseña:</label>
+            <input
+              type="password"
+              id="password"
+              className="form-control"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="Ingresa tu contraseña"
+              disabled={loading}
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            className="btn btn-primary"
             disabled={loading}
-            autoComplete="email"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="password">Contraseña:</label>
-          <input
-            type="password"
-            id="password"
-            className="form-control"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Tu contraseña"
-            disabled={loading}
-            autoComplete="current-password"
-          />
-        </div>
-
-        <button 
-          type="submit" 
-          className="btn btn-primary"
-          style={{ 
-            width: '100%',
-            background: loading 
-              ? '#bdc3c7' 
-              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            border: 'none',
-            padding: '15px',
-            fontWeight: 'bold'
-          }}
-          disabled={loading}
-        >
-          {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-        </button>
-
-        {/* Información de prueba */}
-        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px', color: '#7f8c8d' }}>
-          <p>Usuario de prueba:</p>
-          <p><strong>Email:</strong> propietario@globosyfiesta.com</p>
-          <p><strong>Contraseña:</strong> 123456</p>
-        </div>
-
-        {/* Enlace al catálogo */}
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <Link 
-            to="/catalogo" 
             style={{
-              color: '#667eea',
-              textDecoration: 'none',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              width: '100%',
+              padding: '12px',
+              fontSize: '16px',
+              background: loading ? '#bdc3c7' : '#3498db',
+              cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >
-            ← Ver Catálogo de Productos
-          </Link>
+            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          </button>
+        </form>
+
+        <div style={{
+          marginTop: '20px',
+          padding: '15px',
+          background: '#f8f9fa',
+          borderRadius: '4px',
+          fontSize: '14px',
+          color: '#6c757d',
+          textAlign: 'center'
+        }}>
+          <strong>¿Eres cliente?</strong><br />
+          <a 
+            href="/catalogo" 
+            style={{ color: '#3498db', textDecoration: 'none' }}
+          >
+            Ir al catálogo público
+          </a>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

@@ -78,24 +78,46 @@ export const AuthProvider = ({ children }) => {
     delete axios.defaults.headers.common['Authorization'];
   };
 
-  // Verificar si está autenticado
-  const isAuthenticated = !!user;
+  // Registro
+  const register = async (userData) => {
+    try {
+      const response = await axios.post('/api/auth/registro', userData);
+      
+      const { token: newToken, user: newUser } = response.data;
+      
+      setToken(newToken);
+      setUser(newUser);
+      localStorage.setItem('token', newToken);
+      
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Error al registrar usuario';
+      return { success: false, error: message };
+    }
+  };
 
-  // Verificar permisos (función helper)
+  // Verificar permisos
   const hasPermission = (permission) => {
     if (!user) return false;
     if (user.rol === 'propietario') return true;
-    return user.permisos?.includes(permission) || false;
+    return user.permisos && user.permisos[permission];
+  };
+
+  // Verificar si es propietario
+  const isOwner = () => {
+    return user && user.rol === 'propietario';
   };
 
   const value = {
     user,
+    token,
+    loading,
     login,
     logout,
-    loading,
-    isAuthenticated,
+    register,
     hasPermission,
-    token
+    isOwner,
+    isAuthenticated: !!user
   };
 
   return (

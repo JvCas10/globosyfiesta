@@ -6,7 +6,7 @@ const config = {
     : 'http://localhost:5000',               // Backend local para desarrollo
     
   // Configuración de axios por defecto
-  DEFAULT_TIMEOUT: 10000,
+  DEFAULT_TIMEOUT: 30000,
   
   // Otras configuraciones
   ITEMS_PER_PAGE: 20,

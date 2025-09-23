@@ -1,7 +1,7 @@
 // frontend/src/components/Navbar.js
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
   const { user, logout, hasPermission } = useAuth();
@@ -10,7 +10,7 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
-    if (window.confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+    if (window.confirm("¿Estás seguro de que quieres cerrar sesión?")) {
       logout();
     }
   };
@@ -18,58 +18,72 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <h2>🎈 Globos y Fiesta</h2>
-        <p>Sistema de Gestión</p>
+        <div className="navbar-logo-container">
+          <img
+            src="/LogoGlobosFiesta.jpg"
+            alt="Globos y Fiesta Logo"
+            className="navbar-logo-image"
+            onError={(e) => {
+              e.target.style.display = "none";
+              e.target.nextSibling.style.display = "inline";
+            }}
+          />
+          <span className="navbar-logo-fallback">🎈</span>
+          <div className="navbar-text">
+            <h2>Globos y Fiesta</h2>
+            <p>Sistema de Gestión</p>
+          </div>
+        </div>
       </div>
 
       <ul className="navbar-nav">
         <li className="nav-item">
-          <Link 
-            to="/dashboard" 
-            className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}
+          <Link
+            to="/dashboard"
+            className={`nav-link ${isActive("/dashboard") ? "active" : ""}`}
           >
             📊 Dashboard
           </Link>
         </li>
 
-        {hasPermission('productos') && (
+        {hasPermission("productos") && (
           <li className="nav-item">
-            <Link 
-              to="/productos" 
-              className={`nav-link ${isActive('/productos') ? 'active' : ''}`}
+            <Link
+              to="/productos"
+              className={`nav-link ${isActive("/productos") ? "active" : ""}`}
             >
               🎈 Productos
             </Link>
           </li>
         )}
 
-        {hasPermission('ventas') && (
+        {hasPermission("ventas") && (
           <li className="nav-item">
-            <Link 
-              to="/pedidos" 
-              className={`nav-link ${isActive('/pedidos') ? 'active' : ''}`}
+            <Link
+              to="/pedidos"
+              className={`nav-link ${isActive("/pedidos") ? "active" : ""}`}
             >
               📦 Pedidos
             </Link>
           </li>
         )}
 
-        {hasPermission('ventas') && (
+        {hasPermission("ventas") && (
           <li className="nav-item">
-            <Link 
-              to="/pos" 
-              className={`nav-link ${isActive('/pos') ? 'active' : ''}`}
+            <Link
+              to="/pos"
+              className={`nav-link ${isActive("/pos") ? "active" : ""}`}
             >
               🏪 POS
             </Link>
           </li>
         )}
 
-        {hasPermission('reportes') && (
+        {hasPermission("reportes") && (
           <li className="nav-item">
-            <Link 
-              to="/reportes" 
-              className={`nav-link ${isActive('/reportes') ? 'active' : ''}`}
+            <Link
+              to="/reportes"
+              className={`nav-link ${isActive("/reportes") ? "active" : ""}`}
             >
               📈 Reportes
             </Link>

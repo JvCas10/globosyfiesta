@@ -46,6 +46,61 @@
   font-weight: 300;
 }
 
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.logo-image {
+  height: 100px;        
+  width: 100px;  
+  /* height: 85px;        
+  width: 85px;           */
+  border-radius: 50%;   
+  object-fit: cover;    
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+  transition: transform 0.3s ease;
+}
+
+.logo-image:hover {
+  transform: scale(1.05);
+  border-color: rgba(255, 255, 255, 1);
+}
+
+.logo-fallback {
+  display: none;
+  font-size: 2em;
+}
+
+/* Para móviles, hacer el logo un poco más pequeño */
+@media (max-width: 768px) {
+  .logo-container {
+    gap: 12px;
+  }
+  
+  .logo-image {
+    height: 65px;    /* Cambiar de 55px a 65px */
+    width: 65px;     /* Cambiar de 55px a 65px */
+  }
+  
+  .logo-section h1 {
+    font-size: 1.8em;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-container {
+    gap: 10px;
+  }
+  
+   .logo-image {
+    height: 55px;    /* Cambiar de 50px a 55px */
+    width: 55px;     /* Cambiar de 50px a 55px */
+  }
+}
+
 .header-actions {
   display: flex;
   gap: 15px;

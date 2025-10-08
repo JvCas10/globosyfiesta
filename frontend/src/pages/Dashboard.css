@@ -1,0 +1,261 @@
+/* frontend/src/pages/Dashboard.css */
+
+.dashboard-container {
+  padding: 0;
+}
+
+.dashboard-page-header {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e8e8e8;
+}
+
+.dashboard-title {
+  font-size: 32px;
+  color: #1e3a5f;
+  margin: 0 0 8px 0;
+  font-weight: 700;
+}
+
+.dashboard-date {
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: capitalize;
+}
+
+/* Grid para resúmenes lado a lado */
+.dashboard-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* Cards principales */
+.dashboard-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.dashboard-card-header {
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-card-body {
+  padding: 24px;
+}
+
+/* Stats Grid dentro de las cards */
+.dashboard-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 20px;
+}
+
+.dashboard-stat-item {
+  text-align: center;
+  padding: 20px 16px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.dashboard-stat-item:hover {
+  border-color: #1e3a5f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(30, 58, 95, 0.1);
+}
+
+.dashboard-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.dashboard-stat-label {
+  font-size: 13px;
+  color: #6c757d;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Grid para productos */
+.dashboard-products-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* Tablas */
+.dashboard-table-wrapper {
+  overflow-x: auto;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.dashboard-table thead {
+  background: #f8f9fa;
+}
+
+.dashboard-table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.dashboard-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #e9ecef;
+  color: #495057;
+}
+
+.dashboard-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.dashboard-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Estilos especiales para stock bajo */
+.dashboard-stock-low {
+  color: #e74c3c;
+  font-weight: 700;
+}
+
+/* Mensaje de éxito */
+.dashboard-success-message {
+  color: #27ae60;
+  text-align: center;
+  padding: 30px 20px;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+/* Mensaje vacío */
+.dashboard-empty-message {
+  text-align: center;
+  color: #6c757d;
+  padding: 30px 20px;
+  font-size: 14px;
+}
+
+/* Alert personalizado */
+.dashboard-alert-error {
+  background: #fff5f5;
+  color: #c53030;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #feb2b2;
+  font-size: 14px;
+}
+
+/* Loading */
+.dashboard-loading {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 18px;
+  color: #6c757d;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .dashboard-summary-grid,
+  .dashboard-products-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-title {
+    font-size: 26px;
+  }
+  
+  .dashboard-card-header {
+    padding: 16px 20px;
+    font-size: 15px;
+  }
+  
+  .dashboard-card-body {
+    padding: 20px;
+  }
+  
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .dashboard-stat-value {
+    font-size: 24px;
+  }
+  
+  .dashboard-table-wrapper {
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .dashboard-table {
+    min-width: 500px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-title {
+    font-size: 22px;
+  }
+  
+  .dashboard-date {
+    font-size: 12px;
+  }
+  
+  .dashboard-card-header {
+    padding: 14px 18px;
+    font-size: 14px;
+  }
+  
+  .dashboard-card-body {
+    padding: 18px;
+  }
+  
+  .dashboard-stat-value {
+    font-size: 22px;
+  }
+  
+  .dashboard-stat-label {
+    font-size: 12px;
+  }
+}

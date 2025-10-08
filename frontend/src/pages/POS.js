@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
+import './POS.css';
 
 const POS = () => {
   const [productos, setProductos] = useState([]);
@@ -32,12 +34,13 @@ const POS = () => {
       setProductos(response.data.productos || []);
     } catch (error) {
       console.error('Error al cargar productos:', error);
+      toast.error('❌ Error al cargar los productos');
     }
   };
 
   const agregarProducto = (producto) => {
     if (producto.stock <= 0) {
-      alert('Producto sin stock');
+      toast.warning('⚠️ Producto sin stock disponible');
       return;
     }
 
@@ -45,7 +48,7 @@ const POS = () => {
     
     if (itemExistente) {
       if (itemExistente.cantidad >= producto.stock) {
-        alert(`Stock máximo disponible: ${producto.stock}`);
+        toast.warning(`⚠️ Stock máximo disponible: ${producto.stock}`);
         return;
       }
       setCarrito(prev => prev.map(item =>
@@ -53,12 +56,14 @@ const POS = () => {
           ? { ...item, cantidad: item.cantidad + 1, subtotal: (item.cantidad + 1) * item.precioVenta }
           : item
       ));
+      toast.success(`✅ ${producto.nombre} actualizado en el carrito`);
     } else {
       setCarrito(prev => [...prev, {
         ...producto,
         cantidad: 1,
         subtotal: producto.precioVenta
       }]);
+      //toast.success(`🛒 ${producto.nombre} agregado al carrito`);
     }
   };
 
@@ -70,7 +75,7 @@ const POS = () => {
 
     const producto = productos.find(p => p._id === id);
     if (producto && nuevaCantidad > producto.stock) {
-      alert(`Stock máximo disponible: ${producto.stock}`);
+      toast.warning(`⚠️ Stock máximo disponible: ${producto.stock}`);
       return;
     }
 
@@ -86,14 +91,23 @@ const POS = () => {
   };
 
   const eliminarDelCarrito = (id) => {
+    const item = carrito.find(item => item._id === id);
     setCarrito(prev => prev.filter(item => item._id !== id));
+    if (item) {
+      //toast.info(`🗑️ ${item.nombre} eliminado del carrito`);
+    }
   };
 
   const limpiarCarrito = () => {
+    if (carrito.length === 0) {
+      toast.info('ℹ️ El carrito ya está vacío');
+      return;
+    }
     setCarrito([]);
     setCliente({ nombre: '', telefono: '' });
     setDescuento(0);
     setMetodoPago('efectivo');
+    toast.success('🧹 Carrito limpiado correctamente');
   };
 
   const calcularSubtotal = () => {
@@ -105,23 +119,30 @@ const POS = () => {
   };
 
   const procesarVenta = async () => {
+    // Validaciones con toasts
     if (carrito.length === 0) {
-      alert('El carrito está vacío');
+      toast.warning('⚠️ El carrito está vacío');
       return;
     }
 
-    if (!cliente.nombre.trim() || !cliente.telefono.trim()) {
-      alert('Ingrese los datos del cliente');
+    if (!cliente.nombre.trim()) {
+      toast.warning('⚠️ Ingrese el nombre del cliente');
+      return;
+    }
+
+    if (!cliente.telefono.trim()) {
+      toast.warning('⚠️ Ingrese el teléfono del cliente');
       return;
     }
 
     const total = calcularTotal();
     if (total <= 0) {
-      alert('El total debe ser mayor a 0');
+      toast.error('❌ El total debe ser mayor a 0');
       return;
     }
 
     setLoading(true);
+    const toastId = toast.loading('⏳ Procesando venta...');
 
     try {
       const ventaData = {
@@ -142,6 +163,13 @@ const POS = () => {
 
       const response = await axios.post('/api/ventas', ventaData);
       
+      toast.update(toastId, {
+        render: '🎉 ¡Venta procesada exitosamente!',
+        type: 'success',
+        isLoading: false,
+        autoClose: 3000
+      });
+
       setVentaCompletada({
         numero: response.data.venta.numero,
         total: response.data.venta.total,
@@ -159,7 +187,14 @@ const POS = () => {
       
     } catch (error) {
       console.error('Error al procesar venta:', error);
-      alert(error.response?.data?.message || 'Error al procesar la venta');
+      const errorMessage = error.response?.data?.message || 'Error al procesar la venta';
+      
+      toast.update(toastId, {
+        render: `❌ ${errorMessage}`,
+        type: 'error',
+        isLoading: false,
+        autoClose: 4000
+      });
     } finally {
       setLoading(false);
     }
@@ -240,20 +275,22 @@ const POS = () => {
       </html>
     `);
     ventanaImpresion.document.close();
+    toast.success('🖨️ Ticket enviado a impresión');
   };
 
-  const productosVisibes = productos.filter(producto => 
+  const cerrarModalVenta = () => {
+    setVentaCompletada(null);
+  };
+
+  const productosVisibles = productos.filter(producto => 
     producto.nombre.toLowerCase().includes(busquedaProducto.toLowerCase()) ||
     producto.descripcion?.toLowerCase().includes(busquedaProducto.toLowerCase())
   );
 
   if (!hasPermission('ventas')) {
     return (
-      <div>
-        <div className="page-header">
-          <h1 className="page-title">🏪 Sistema POS</h1>
-        </div>
-        <div className="alert alert-error">
+      <div className="pos-main-container">
+        <div className="pos-alert-error">
           No tienes permisos para usar el sistema POS.
         </div>
       </div>
@@ -261,97 +298,128 @@ const POS = () => {
   }
 
   return (
-    <div className="pos-container">
+    <div className="pos-main-container">
+      {/* Modal de venta completada */}
       {ventaCompletada && (
-        <div className="modal-overlay">
-          <div className="modal-venta-completada">
-            <div className="success-header">
-              <h2>🎉 ¡Venta Completada!</h2>
+        <div className="pos-modal-overlay" onClick={cerrarModalVenta}>
+          <div className="pos-modal-completed" onClick={(e) => e.stopPropagation()}>
+            <div className="pos-modal-header">
+              🎉 ¡Venta Completada!
+              <button className="pos-modal-close" onClick={cerrarModalVenta}>×</button>
             </div>
-            <div className="venta-detalles">
-              <div className="detalle-item">
-                <strong>Ticket:</strong> {ventaCompletada.numero}
+            
+            <div className="pos-modal-body">
+              <div className="pos-sale-details">
+                <div className="pos-detail-row">
+                  <span className="pos-detail-label">Ticket:</span>
+                  <span className="pos-detail-value">{ventaCompletada.numero}</span>
+                </div>
+                <div className="pos-detail-row">
+                  <span className="pos-detail-label">Cliente:</span>
+                  <span className="pos-detail-value">{ventaCompletada.cliente}</span>
+                </div>
+                <div className="pos-detail-row">
+                  <span className="pos-detail-label">Método de Pago:</span>
+                  <span className="pos-detail-value">{ventaCompletada.metodoPago}</span>
+                </div>
+                {ventaCompletada.descuento > 0 && (
+                  <div className="pos-detail-row">
+                    <span className="pos-detail-label">Descuento:</span>
+                    <span className="pos-detail-value pos-discount-value">
+                      -Q{ventaCompletada.descuento.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                <div className="pos-detail-row pos-detail-total">
+                  <span className="pos-detail-label">Total:</span>
+                  <span className="pos-detail-value">Q{ventaCompletada.total.toFixed(2)}</span>
+                </div>
               </div>
-              <div className="detalle-item">
-                <strong>Cliente:</strong> {ventaCompletada.cliente}
+
+              <div className="pos-items-section">
+                <h4 className="pos-items-title">📦 Productos Vendidos</h4>
+                <div className="pos-items-list">
+                  {ventaCompletada.items.map((item, index) => (
+                    <div key={index} className="pos-item-row">
+                      <div className="pos-item-name">
+                        {item.nombre}
+                        <span className="pos-item-qty"> x{item.cantidad}</span>
+                      </div>
+                      <div className="pos-item-price">Q{item.subtotal.toFixed(2)}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="detalle-item">
-                <strong>Total:</strong> Q{ventaCompletada.total.toFixed(2)}
+
+              <div className="pos-modal-actions">
+                <button className="pos-btn-print" onClick={imprimirTicket}>
+                  🖨️ Imprimir Ticket
+                </button>
+                <button 
+                  className="pos-btn-new-sale" 
+                  onClick={cerrarModalVenta}
+                >
+                  ➕ Nueva Venta
+                </button>
               </div>
-              <div className="detalle-item">
-                <strong>Método de Pago:</strong> {ventaCompletada.metodoPago}
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn btn-primary" onClick={imprimirTicket}>
-                🖨️ Imprimir Ticket
-              </button>
-              <button 
-                className="btn btn-secondary" 
-                onClick={() => setVentaCompletada(null)}
-              >
-                Nueva Venta
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="pos-layout">
+      <div className="pos-main-layout">
         {/* Panel de productos */}
-        <div className="productos-panel">
-          <div className="panel-header">
-            <h2>🛍️ Productos</h2>
+        <div className="pos-products-panel">
+          <div className="pos-panel-header">
+            <h2 className="pos-panel-title">🛍️ Productos</h2>
           </div>
 
           {/* Filtros de productos */}
-          <div className="filtros-productos">
-            <div className="busqueda-input">
-              <input
-                type="text"
-                placeholder="🔍 Buscar producto..."
-                value={busquedaProducto}
-                onChange={(e) => setBusquedaProducto(e.target.value)}
-              />
-            </div>
-            <div className="categoria-filtro">
-              <select
-                value={categoriaFiltro}
-                onChange={(e) => setCategoriaFiltro(e.target.value)}
-              >
-                <option value="todos">📦 Todas</option>
-                <option value="globos">🎈 Globos</option>
-                <option value="decoraciones">🎊 Decoraciones</option>
-                <option value="articulos-fiesta">🎉 Artículos</option>
-                <option value="servicios">🛠️ Servicios</option>
-                <option value="otros">📋 Otros</option>
-              </select>
-            </div>
+          <div className="pos-filters-section">
+            <input
+              type="text"
+              className="pos-search-input"
+              placeholder="🔍 Buscar producto..."
+              value={busquedaProducto}
+              onChange={(e) => setBusquedaProducto(e.target.value)}
+            />
+            <select
+              className="pos-category-select"
+              value={categoriaFiltro}
+              onChange={(e) => setCategoriaFiltro(e.target.value)}
+            >
+              <option value="todos">📦 Todas</option>
+              <option value="globos">🎈 Globos</option>
+              <option value="decoraciones">🎊 Decoraciones</option>
+              <option value="articulos-fiesta">🎉 Artículos</option>
+              <option value="servicios">🛠️ Servicios</option>
+              <option value="otros">📋 Otros</option>
+            </select>
           </div>
 
           {/* Grid de productos */}
-          <div className="productos-grid">
-            {productosVisibes.map(producto => (
+          <div className="pos-products-grid">
+            {productosVisibles.map(producto => (
               <div 
                 key={producto._id} 
-                className={`producto-card ${producto.stock <= 0 ? 'sin-stock' : ''}`}
+                className={`pos-product-card ${producto.stock <= 0 ? 'out-of-stock' : ''}`}
                 onClick={() => agregarProducto(producto)}
               >
                 {producto.imagenUrl && (
-                  <div className="producto-imagen">
-                    <img src={producto.imagenUrl} alt={producto.nombre} />
+                  <div className="pos-product-image-container">
+                    <img src={producto.imagenUrl} alt={producto.nombre} className="pos-product-image" />
                   </div>
                 )}
-                <div className="producto-info">
+                <div className="pos-product-details">
                   <h3>{producto.nombre}</h3>
-                  <div className="precio-stock">
-                    <span className="precio">Q{producto.precioVenta.toFixed(2)}</span>
-                    <span className={`stock ${producto.stock <= producto.stockMinimo ? 'bajo' : ''}`}>
+                  <div className="pos-product-price-stock">
+                    <span className="pos-product-price">Q{producto.precioVenta.toFixed(2)}</span>
+                    <span className={`pos-product-stock ${producto.stock <= producto.stockMinimo ? 'low' : ''}`}>
                       Stock: {producto.stock}
                     </span>
                   </div>
                   {producto.color && (
-                    <div className="producto-detalle">
+                    <div className="pos-product-extra">
                       Color: {producto.color}
                     </div>
                   )}
@@ -362,28 +430,30 @@ const POS = () => {
         </div>
 
         {/* Panel de carrito */}
-        <div className="carrito-panel">
-          <div className="panel-header">
-            <h2>🛒 Carrito de Venta</h2>
+        <div className="pos-cart-panel">
+          <div className="pos-panel-header">
+            <h2 className="pos-panel-title">🛒 Carrito de Venta</h2>
             {carrito.length > 0 && (
-              <button className="btn-limpiar" onClick={limpiarCarrito}>
+              <button className="pos-btn-clear" onClick={limpiarCarrito}>
                 🗑️ Limpiar
               </button>
             )}
           </div>
 
           {/* Datos del cliente */}
-          <div className="cliente-form">
-            <h3>👤 Datos del Cliente</h3>
-            <div className="form-row">
+          <div className="pos-client-section">
+            <h3 className="pos-client-title">👤 Datos del Cliente</h3>
+            <div className="pos-client-inputs">
               <input
                 type="text"
+                className="pos-client-input"
                 placeholder="Nombre del cliente *"
                 value={cliente.nombre}
                 onChange={(e) => setCliente(prev => ({...prev, nombre: e.target.value}))}
               />
               <input
                 type="tel"
+                className="pos-client-input"
                 placeholder="Teléfono *"
                 value={cliente.telefono}
                 onChange={(e) => setCliente(prev => ({...prev, telefono: e.target.value}))}
@@ -392,34 +462,41 @@ const POS = () => {
           </div>
 
           {/* Items del carrito */}
-          <div className="carrito-items">
+          <div className="pos-cart-items">
             {carrito.length === 0 ? (
-              <div className="carrito-vacio">
+              <div className="pos-cart-empty">
+                <p>🛒</p>
                 <p>El carrito está vacío</p>
                 <p>Haz clic en un producto para agregarlo</p>
               </div>
             ) : (
               carrito.map(item => (
-                <div key={item._id} className="carrito-item">
-                  <div className="item-info">
+                <div key={item._id} className="pos-cart-item">
+                  <div className="pos-item-info">
                     <h4>{item.nombre}</h4>
                     <p>Q{item.precioVenta.toFixed(2)} c/u</p>
                   </div>
-                  <div className="item-controles">
-                    <div className="cantidad-controles">
-                      <button onClick={() => actualizarCantidad(item._id, item.cantidad - 1)}>
+                  <div className="pos-item-controls">
+                    <div className="pos-quantity-controls">
+                      <button 
+                        className="pos-quantity-btn"
+                        onClick={() => actualizarCantidad(item._id, item.cantidad - 1)}
+                      >
                         -
                       </button>
-                      <span>{item.cantidad}</span>
-                      <button onClick={() => actualizarCantidad(item._id, item.cantidad + 1)}>
+                      <span className="pos-quantity-value">{item.cantidad}</span>
+                      <button 
+                        className="pos-quantity-btn"
+                        onClick={() => actualizarCantidad(item._id, item.cantidad + 1)}
+                      >
                         +
                       </button>
                     </div>
-                    <div className="item-subtotal">
+                    <div className="pos-item-subtotal">
                       Q{item.subtotal.toFixed(2)}
                     </div>
                     <button 
-                      className="btn-eliminar"
+                      className="pos-btn-remove"
                       onClick={() => eliminarDelCarrito(item._id)}
                     >
                       ✕
@@ -432,11 +509,12 @@ const POS = () => {
 
           {/* Totales y pago */}
           {carrito.length > 0 && (
-            <div className="pago-section">
-              <div className="pago-opciones">
-                <div className="form-group">
-                  <label>💳 Método de Pago</label>
+            <div className="pos-payment-section">
+              <div className="pos-payment-options">
+                <div className="pos-form-group">
+                  <label className="pos-form-label">💳 Método de Pago</label>
                   <select
+                    className="pos-form-select"
                     value={metodoPago}
                     onChange={(e) => setMetodoPago(e.target.value)}
                   >
@@ -447,10 +525,11 @@ const POS = () => {
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label>🏷️ Descuento (Q)</label>
+                <div className="pos-form-group">
+                  <label className="pos-form-label">🏷️ Descuento (Q)</label>
                   <input
                     type="number"
+                    className="pos-form-input"
                     min="0"
                     step="0.01"
                     value={descuento}
@@ -459,22 +538,25 @@ const POS = () => {
                 </div>
               </div>
 
-              <div className="totales">
-                <div className="subtotal">
-                  Subtotal: Q{calcularSubtotal().toFixed(2)}
+              <div className="pos-totals">
+                <div className="pos-subtotal">
+                  <span>Subtotal:</span>
+                  <span>Q{calcularSubtotal().toFixed(2)}</span>
                 </div>
                 {descuento > 0 && (
-                  <div className="descuento">
-                    Descuento: -Q{descuento.toFixed(2)}
+                  <div className="pos-discount">
+                    <span>Descuento:</span>
+                    <span>-Q{descuento.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="total">
-                  TOTAL: Q{calcularTotal().toFixed(2)}
+                <div className="pos-total">
+                  <span>TOTAL:</span>
+                  <span>Q{calcularTotal().toFixed(2)}</span>
                 </div>
               </div>
 
               <button 
-                className="btn-procesar"
+                className="pos-btn-process"
                 onClick={procesarVenta}
                 disabled={loading || calcularTotal() <= 0}
               >
@@ -484,435 +566,6 @@ const POS = () => {
           )}
         </div>
       </div>
-
-      <style jsx>{`
-        .pos-container {
-          height: 100vh;
-          background: #f5f6fa;
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .pos-layout {
-          display: grid;
-          grid-template-columns: 1fr 400px;
-          height: 100vh;
-          gap: 0;
-        }
-
-        .productos-panel, .carrito-panel {
-          background: white;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .carrito-panel {
-          border-left: 1px solid #e1e8ed;
-        }
-
-        .panel-header {
-          padding: 1rem;
-          background: #2c3e50;
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .panel-header h2 {
-          margin: 0;
-          font-size: 1.2rem;
-        }
-
-        .btn-limpiar {
-          background: #e74c3c;
-          color: white;
-          border: none;
-          padding: 0.5rem 1rem;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 0.9rem;
-        }
-
-        .filtros-productos {
-          padding: 1rem;
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 1rem;
-          background: #f8f9fa;
-        }
-
-        .busqueda-input input, .categoria-filtro select {
-          width: 100%;
-          padding: 0.7rem;
-          border: 2px solid #e1e8ed;
-          border-radius: 6px;
-          font-size: 1rem;
-        }
-
-        .productos-grid {
-          flex: 1;
-          overflow-y: auto;
-          padding: 1rem;
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-          gap: 1rem;
-        }
-
-        .producto-card {
-          background: white;
-          border: 2px solid #e1e8ed;
-          border-radius: 12px;
-          padding: 1rem;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .producto-card:hover {
-          border-color: #3498db;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
-        }
-
-        .producto-card.sin-stock {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .producto-imagen {
-          height: 100px;
-          overflow: hidden;
-          border-radius: 8px;
-          margin-bottom: 0.5rem;
-        }
-
-        .producto-imagen img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .producto-info h3 {
-          margin: 0 0 0.5rem 0;
-          font-size: 1rem;
-          color: #2c3e50;
-        }
-
-        .precio-stock {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .precio {
-          font-weight: bold;
-          color: #27ae60;
-          font-size: 1.1rem;
-        }
-
-        .stock {
-          font-size: 0.8rem;
-          color: #7f8c8d;
-        }
-
-        .stock.bajo {
-          color: #e74c3c;
-          font-weight: bold;
-        }
-
-        .producto-detalle {
-          font-size: 0.8rem;
-          color: #7f8c8d;
-          margin-top: 0.5rem;
-        }
-
-        .cliente-form {
-          padding: 1rem;
-          background: #f8f9fa;
-        }
-
-        .cliente-form h3 {
-          margin: 0 0 1rem 0;
-          font-size: 1rem;
-          color: #2c3e50;
-        }
-
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 0.5rem;
-        }
-
-        .form-row input {
-          padding: 0.7rem;
-          border: 2px solid #e1e8ed;
-          border-radius: 6px;
-          font-size: 0.9rem;
-        }
-
-        .carrito-items {
-          flex: 1;
-          overflow-y: auto;
-          padding: 1rem;
-        }
-
-        .carrito-vacio {
-          text-align: center;
-          color: #7f8c8d;
-          padding: 2rem;
-        }
-
-        .carrito-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1rem;
-          border: 1px solid #e1e8ed;
-          border-radius: 8px;
-          margin-bottom: 0.5rem;
-          background: #f8f9fa;
-        }
-
-        .item-info h4 {
-          margin: 0 0 0.3rem 0;
-          font-size: 0.9rem;
-          color: #2c3e50;
-        }
-
-        .item-info p {
-          margin: 0;
-          font-size: 0.8rem;
-          color: #7f8c8d;
-        }
-
-        .item-controles {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .cantidad-controles {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .cantidad-controles button {
-          width: 30px;
-          height: 30px;
-          border: 1px solid #3498db;
-          background: white;
-          color: #3498db;
-          border-radius: 50%;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .cantidad-controles button:hover {
-          background: #3498db;
-          color: white;
-        }
-
-        .item-subtotal {
-          font-weight: bold;
-          color: #27ae60;
-          min-width: 80px;
-          text-align: right;
-        }
-
-        .btn-eliminar {
-          background: #e74c3c;
-          color: white;
-          border: none;
-          width: 25px;
-          height: 25px;
-          border-radius: 50%;
-          cursor: pointer;
-          font-size: 0.8rem;
-        }
-
-        .pago-section {
-          padding: 1rem;
-          background: #f8f9fa;
-          border-top: 1px solid #e1e8ed;
-        }
-
-        .pago-opciones {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1rem;
-          margin-bottom: 1rem;
-        }
-
-        .form-group label {
-          display: block;
-          margin-bottom: 0.5rem;
-          font-size: 0.9rem;
-          font-weight: bold;
-          color: #2c3e50;
-        }
-
-        .form-group select, .form-group input {
-          width: 100%;
-          padding: 0.6rem;
-          border: 2px solid #e1e8ed;
-          border-radius: 6px;
-          font-size: 0.9rem;
-        }
-
-        .totales {
-          margin-bottom: 1rem;
-          font-size: 1.1rem;
-        }
-
-        .subtotal, .descuento {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 0.5rem;
-          color: #7f8c8d;
-        }
-
-        .total {
-          display: flex;
-          justify-content: space-between;
-          font-weight: bold;
-          font-size: 1.3rem;
-          color: #2c3e50;
-          padding-top: 0.5rem;
-          border-top: 2px solid #e1e8ed;
-        }
-
-        .descuento {
-          color: #e74c3c;
-        }
-
-        .btn-procesar {
-          width: 100%;
-          padding: 1rem;
-          background: #27ae60;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 1.1rem;
-          font-weight: bold;
-          cursor: pointer;
-          transition: background 0.3s;
-        }
-
-        .btn-procesar:hover {
-          background: #229954;
-        }
-
-        .btn-procesar:disabled {
-          background: #95a5a6;
-          cursor: not-allowed;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.8);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 1000;
-        }
-
-        .modal-venta-completada {
-          background: white;
-          border-radius: 16px;
-          padding: 2rem;
-          max-width: 500px;
-          width: 90%;
-          text-align: center;
-        }
-
-        .success-header {
-          color: #27ae60;
-          margin-bottom: 2rem;
-        }
-
-        .success-header h2 {
-          margin: 0;
-          font-size: 2rem;
-        }
-
-        .venta-detalles {
-          background: #f8f9fa;
-          padding: 1.5rem;
-          border-radius: 12px;
-          margin-bottom: 2rem;
-          text-align: left;
-        }
-
-        .detalle-item {
-          display: flex;
-          justify-content: space-between;
-          padding: 0.5rem 0;
-          border-bottom: 1px solid #e1e8ed;
-        }
-
-        .detalle-item:last-child {
-          border-bottom: none;
-          font-weight: bold;
-          font-size: 1.1rem;
-          color: #27ae60;
-        }
-
-        .modal-actions {
-          display: flex;
-          gap: 1rem;
-          justify-content: center;
-        }
-
-        .btn {
-          padding: 0.8rem 1.5rem;
-          border: none;
-          border-radius: 8px;
-          font-weight: bold;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-
-        .btn-primary {
-          background: #3498db;
-          color: white;
-        }
-
-        .btn-primary:hover {
-          background: #2980b9;
-        }
-
-        .btn-secondary {
-          background: #95a5a6;
-          color: white;
-        }
-
-        .btn-secondary:hover {
-          background: #7f8c8d;
-        }
-
-        @media (max-width: 1200px) {
-          .pos-layout {
-            grid-template-columns: 1fr 350px;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .pos-layout {
-            grid-template-columns: 1fr;
-            grid-template-rows: 1fr 400px;
-          }
-
-          .productos-grid {
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-          }
-        }
-      `}</style>
     </div>
   );
 };

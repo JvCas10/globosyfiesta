@@ -18,12 +18,27 @@ import ClientCatalog from './pages/ClientCatalog';
 import OrderTracking from './pages/OrderTracking';
 
 import './App.css';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <div className="App">
+            <ToastContainer 
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={true}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="colored"  
+            style={{ zIndex: 9999 }}
+          />
           <Routes>
             {/* Ruta principal - redirige al catálogo público */}
             <Route path="/" element={<Navigate to="/catalogo" replace />} />

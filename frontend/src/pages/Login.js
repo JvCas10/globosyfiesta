@@ -2,12 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
+import './Login.css';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   
   const { login, logout, user, isAuthenticated } = useAuth();
 
@@ -50,88 +52,84 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-form">
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <h1 style={{ color: '#2c3e50', marginBottom: '10px' }}>🎈 Globos y Fiesta</h1>
-          <h2 style={{ color: '#7f8c8d', fontSize: '18px', fontWeight: 'normal' }}>
-            Panel de Administración
-          </h2>
+    <div className="admin-login-wrapper">
+      <div className="admin-login-card">
+        <div className="admin-login-header">
+          <div className="admin-logo-container">
+            {!logoError ? (
+              <img
+                src="/LogoGlobosFiesta2.jpg"
+                alt="Globos&Fiesta Logo"
+                className="admin-logo-image"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <div className="admin-logo-fallback">
+                🎈
+              </div>
+            )}
+          </div>
+          <h1 className="admin-login-title">Globos&Fiesta</h1>
+          <p className="admin-login-subtitle">Panel de Administración</p>
         </div>
 
-        {error && (
-          <div style={{
-            background: '#ffebee',
-            color: '#c62828',
-            padding: '12px',
-            borderRadius: '4px',
-            marginBottom: '20px',
-            border: '1px solid #ffcdd2'
-          }}>
-            {error}
-          </div>
-        )}
+        <div className="admin-login-body">
+          {error && (
+            <div className="admin-alert-error">
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email:</label>
-            <input
-              type="email"
-              id="email"
-              className="form-control"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="Ingresa tu email"
+          <form onSubmit={handleSubmit}>
+            <div className="admin-form-field">
+              <label htmlFor="email" className="admin-form-label">
+                Correo Electrónico
+              </label>
+              <input
+                type="email"
+                id="email"
+                className="admin-form-input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="tu@email.com"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="admin-form-field">
+              <label htmlFor="password" className="admin-form-label">
+                Contraseña
+              </label>
+              <input
+                type="password"
+                id="password"
+                className="admin-form-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="Ingresa tu contraseña"
+                disabled={loading}
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              className="admin-submit-button"
               disabled={loading}
-            />
-          </div>
+            >
+              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            </button>
+          </form>
+        </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Contraseña:</label>
-            <input
-              type="password"
-              id="password"
-              className="form-control"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="Ingresa tu contraseña"
-              disabled={loading}
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            className="btn btn-primary"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '16px',
-              background: loading ? '#bdc3c7' : '#3498db',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-          </button>
-        </form>
-
-        <div style={{
-          marginTop: '20px',
-          padding: '15px',
-          background: '#f8f9fa',
-          borderRadius: '4px',
-          fontSize: '14px',
-          color: '#6c757d',
-          textAlign: 'center'
-        }}>
-          <strong>¿Eres cliente?</strong><br />
+        <div className="admin-login-footer">
+          <p className="admin-footer-text">¿Eres cliente?</p>
           <a 
             href="/catalogo" 
-            style={{ color: '#3498db', textDecoration: 'none' }}
+            className="admin-catalog-link"
           >
-            Ir al catálogo público
+            Ir al catálogo público →
           </a>
         </div>
       </div>

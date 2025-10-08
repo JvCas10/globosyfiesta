@@ -1,11 +1,12 @@
-// Al inicio de tu ClientCatalog.js, agrega esta línea:
+// ClientCatalog.js - Actualizado con validaciones y límites
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import EmailVerification from "../components/EmailVerification";
 import PasswordRecovery from "../components/PasswordRecovery";
-import "./ClientCatalog.css"; // 👈 AGREGA ESTA LÍNEA
+import { toast } from "react-toastify";
+import "./ClientCatalog.css";
 
 const ClientCatalog = () => {
   const [productos, setProductos] = useState([]);
@@ -49,7 +50,6 @@ const ClientCatalog = () => {
 
   useEffect(() => {
     fetchProductos();
-    // Cargar carrito del localStorage (específico por usuario o general)
     const carritoKey = user ? `carrito_${user._id}` : "carrito_guest";
     const carritoGuardado = localStorage.getItem(carritoKey);
     if (carritoGuardado) {
@@ -57,13 +57,11 @@ const ClientCatalog = () => {
     }
   }, [categoria, user]);
 
-  // Guardar carrito en localStorage cuando cambie (específico por usuario)
   useEffect(() => {
     const carritoKey = user ? `carrito_${user._id}` : "carrito_guest";
     localStorage.setItem(carritoKey, JSON.stringify(carrito));
   }, [carrito, user]);
 
-  // Limpiar mensajes después de 5 segundos
   useEffect(() => {
     if (error || mensaje) {
       const timer = setTimeout(() => {
@@ -74,7 +72,6 @@ const ClientCatalog = () => {
     }
   }, [error, mensaje]);
 
-  // Prellenar datos del cliente si está logueado
   useEffect(() => {
     if (user && user.rol === "cliente") {
       setClienteData({
@@ -100,7 +97,9 @@ const ClientCatalog = () => {
       setProductos(productosData);
     } catch (error) {
       console.error("Error al cargar productos:", error);
-      setError("Error al cargar los productos. Por favor, recarga la página.");
+      toast.error(
+        "Error al cargar los productos. Por favor, recarga la página."
+      );
     } finally {
       setLoading(false);
     }
@@ -111,8 +110,11 @@ const ClientCatalog = () => {
 
     if (itemExistente) {
       if (itemExistente.cantidad >= producto.stock) {
-        setError(
-          `Stock máximo disponible para ${producto.nombre}: ${producto.stock} unidades`
+        toast.warning(
+          `Stock máximo disponible para ${producto.nombre}: ${producto.stock} unidades`,
+          {
+            icon: "⚠️",
+          }
         );
         return;
       }
@@ -123,10 +125,16 @@ const ClientCatalog = () => {
             : item
         )
       );
+      toast.success(`${producto.nombre} actualizado en el carrito`, {
+        icon: "🛒",
+      });
     } else {
       setCarrito((prev) => [...prev, { ...producto, cantidad: 1 }]);
+      toast.success(`${producto.nombre} agregado al carrito`, {
+        position: "top-right",
+        autoClose: 2000,
+      });
     }
-    setMensaje(`${producto.nombre} agregado al carrito`);
   };
 
   const actualizarCantidad = (id, nuevaCantidad) => {
@@ -138,7 +146,9 @@ const ClientCatalog = () => {
     const producto =
       productos.find((p) => p._id === id) || carrito.find((c) => c._id === id);
     if (producto && nuevaCantidad > producto.stock) {
-      setError(`Stock máximo disponible: ${producto.stock} unidades`);
+      toast.warning(`Stock máximo disponible: ${producto.stock} unidades`, {
+        icon: "⚠️",
+      });
       return;
     }
 
@@ -150,7 +160,11 @@ const ClientCatalog = () => {
   };
 
   const eliminarDelCarrito = (id) => {
+    const producto = carrito.find((item) => item._id === id);
     setCarrito((prev) => prev.filter((item) => item._id !== id));
+    toast.info(`${producto?.nombre || "Producto"} eliminado del carrito`, {
+      icon: "🗑️",
+    });
   };
 
   const calcularTotal = () => {
@@ -160,6 +174,7 @@ const ClientCatalog = () => {
     );
   };
 
+  // Validar formulario de checkout
   const validarFormulario = () => {
     const errores = [];
 
@@ -171,16 +186,15 @@ const ClientCatalog = () => {
       errores.push("El teléfono es obligatorio");
     } else {
       const telefonoLimpio = clienteData.telefono.replace(/\D/g, "");
-      if (telefonoLimpio.length < 8) {
-        errores.push("El teléfono debe tener al menos 8 dígitos");
+      if (telefonoLimpio.length !== 8) {
+        errores.push("El teléfono debe tener exactamente 8 dígitos");
       }
     }
 
-    if (
-      clienteData.email.trim() &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clienteData.email)
-    ) {
-      errores.push("El formato del email no es válido");
+    if (clienteData.email.trim()) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clienteData.email)) {
+        errores.push("El formato del email no es válido");
+      }
     }
 
     return errores;
@@ -192,16 +206,12 @@ const ClientCatalog = () => {
 
     const erroresValidacion = validarFormulario();
     if (erroresValidacion.length > 0) {
-      setError(
-        `Por favor corrige los siguientes errores:\n• ${erroresValidacion.join(
-          "\n• "
-        )}`
-      );
+      erroresValidacion.forEach((error) => toast.error(error));
       return;
     }
 
     if (carrito.length === 0) {
-      setError("El carrito está vacío");
+      toast.error("El carrito está vacío");
       return;
     }
 
@@ -232,20 +242,21 @@ const ClientCatalog = () => {
         setClienteData({ nombre: "", telefono: "", email: "", notas: "" });
         const carritoKey = user ? `carrito_${user._id}` : "carrito_guest";
         localStorage.removeItem(carritoKey);
-        setMensaje("¡Pedido creado exitosamente!");
+        toast.success("¡Pedido creado exitosamente!", {
+          autoClose: 3000,
+        });
       }
     } catch (error) {
       console.error("Error al procesar pedido:", error);
 
       if (error.response?.data?.details) {
-        const detalles = error.response.data.details
-          .map((d) => d.msg)
-          .join("\n• ");
-        setError(`Errores de validación:\n• ${detalles}`);
+        error.response.data.details.forEach((d) => toast.error(d.msg));
       } else if (error.response?.data?.message) {
-        setError(error.response.data.message);
+        toast.error(error.response.data.message);
       } else {
-        setError("Error al procesar el pedido. Por favor, inténtalo de nuevo.");
+        toast.error(
+          "Error al procesar el pedido. Por favor, inténtalo de nuevo."
+        );
       }
     } finally {
       setProcesandoPedido(false);
@@ -298,19 +309,82 @@ const ClientCatalog = () => {
     e.preventDefault();
     setError("");
 
+    // Validar campos
+    if (!loginData.email.trim()) {
+      toast.error("El email es obligatorio");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginData.email)) {
+      toast.error("El formato del email no es válido");
+      return;
+    }
+
+    if (!loginData.password) {
+      toast.error("La contraseña es obligatoria");
+      return;
+    }
+
     const result = await login(loginData.email, loginData.password);
     if (result.success) {
       setMostrarLogin(false);
       setLoginData({ email: "", password: "" });
-      setMensaje("¡Bienvenido de vuelta!");
+      toast.success(
+        `¡Bienvenido de vuelta, ${result.user?.nombre || "usuario"}!`,
+        {
+          icon: "👋",
+        }
+      );
     } else {
-      setError(result.error);
+      toast.error(result.error || "Error al iniciar sesión");
     }
   };
 
   const handleRegistro = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Validar campos
+    if (!registroData.nombre.trim()) {
+      toast.error("El nombre es obligatorio");
+      return;
+    }
+
+    if (registroData.nombre.length < 2 || registroData.nombre.length > 30) {
+      toast.error("El nombre debe tener entre 2 y 30 caracteres");
+      return;
+    }
+
+    if (!registroData.email.trim()) {
+      toast.error("El email es obligatorio");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registroData.email)) {
+      toast.error("El formato del email no es válido");
+      return;
+    }
+
+    if (!registroData.password) {
+      toast.error("La contraseña es obligatoria");
+      return;
+    }
+
+    if (registroData.password.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
+    if (!registroData.telefono.trim()) {
+      toast.error("El teléfono es obligatorio");
+      return;
+    }
+
+    const telefonoLimpio = registroData.telefono.replace(/\D/g, "");
+    if (telefonoLimpio.length !== 8) {
+      toast.error("El teléfono debe tener exactamente 8 dígitos");
+      return;
+    }
 
     try {
       const response = await axios.post("/api/auth/registro-cliente", {
@@ -326,23 +400,24 @@ const ClientCatalog = () => {
         setEmailPendiente(registroData.email);
         setMostrarVerificacion(true);
         setRegistroData({ nombre: "", email: "", password: "", telefono: "" });
-        setMensaje("¡Cuenta creada! Verifica tu email para continuar.");
+        toast.success("¡Cuenta creada! Verifica tu email para continuar.", {
+          autoClose: 4000,
+        });
       }
     } catch (error) {
       if (error.response?.data?.details) {
-        const detalles = error.response.data.details
-          .map((d) => d.msg)
-          .join("\n• ");
-        setError(`Errores de validación:\n• ${detalles}`);
+        error.response.data.details.forEach((d) => toast.error(d.msg));
       } else {
-        setError(error.response?.data?.message || "Error al crear cuenta");
+        toast.error(error.response?.data?.message || "Error al crear cuenta");
       }
     }
   };
 
   const handleEmailVerificado = () => {
     setMostrarVerificacion(false);
-    setMensaje("¡Email verificado! Ahora puedes iniciar sesión.");
+    toast.success("¡Email verificado! Ahora puedes iniciar sesión.", {
+      icon: "✅",
+    });
     setMostrarLogin(true);
   };
 
@@ -350,7 +425,39 @@ const ClientCatalog = () => {
     logout();
     setCarrito([]);
     setClienteData({ nombre: "", telefono: "", email: "", notas: "" });
-    setMensaje("Sesión cerrada");
+    toast.info("Sesión cerrada", {
+      icon: "👋",
+    });
+  };
+
+  // Manejadores de cambio con validación de límites
+  const handleNombreChange = (e, isCheckout = false) => {
+    const value = e.target.value.slice(0, 30); // Límite 30 caracteres
+    if (isCheckout) {
+      setClienteData({ ...clienteData, nombre: value });
+    } else {
+      setRegistroData({ ...registroData, nombre: value });
+    }
+  };
+
+  const handleTelefonoChange = (e, isCheckout = false) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 8); // Solo números, límite 8
+    if (isCheckout) {
+      setClienteData({ ...clienteData, telefono: value });
+    } else {
+      setRegistroData({ ...registroData, telefono: value });
+    }
+  };
+
+  const handleEmailChange = (e, isLogin = false, isCheckout = false) => {
+    const value = e.target.value.slice(0, 40); // Límite 40 caracteres
+    if (isLogin) {
+      setLoginData({ ...loginData, email: value });
+    } else if (isCheckout) {
+      setClienteData({ ...clienteData, email: value });
+    } else {
+      setRegistroData({ ...registroData, email: value });
+    }
   };
 
   // ========== RENDER ==========
@@ -442,9 +549,11 @@ const ClientCatalog = () => {
                 }}
               />
               <span className="logo-fallback">🎈</span>
-              <h1>Globos y Fiesta</h1>
+              <div className="logo-text">
+                <h1>Globos&Fiesta</h1>
+                <p>Todo para hacer tu celebración especial</p>
+              </div>
             </div>
-            <p>Todo para hacer tu celebración especial</p>
           </div>
 
           <div className="header-actions">
@@ -691,53 +800,51 @@ const ClientCatalog = () => {
                 <div className="checkout-section">
                   <h4>Información del Cliente</h4>
                   <div className="form-group">
-                    <label>Nombre Completo *</label>
+                    <label>Nombre Completo * (máx. 30 caracteres)</label>
                     <input
                       type="text"
                       value={clienteData.nombre}
-                      onChange={(e) =>
-                        setClienteData({
-                          ...clienteData,
-                          nombre: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleNombreChange(e, true)}
                       placeholder="Tu nombre completo"
                       required
+                      maxLength="30"
                       className="form-input"
                     />
+                    <small style={{ color: "#7c3aed", fontSize: "12px" }}>
+                      {clienteData.nombre.length}/30
+                    </small>
                   </div>
 
                   <div className="form-group">
-                    <label>Teléfono *</label>
+                    <label>Teléfono * (8 dígitos)</label>
                     <input
                       type="tel"
                       value={clienteData.telefono}
-                      onChange={(e) =>
-                        setClienteData({
-                          ...clienteData,
-                          telefono: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleTelefonoChange(e, true)}
                       placeholder="12345678"
                       required
+                      maxLength="8"
+                      pattern="[0-9]{8}"
                       className="form-input"
                     />
+                    <small style={{ color: "#7c3aed", fontSize: "12px" }}>
+                      {clienteData.telefono.length}/8
+                    </small>
                   </div>
 
                   <div className="form-group">
-                    <label>Email (opcional)</label>
+                    <label>Email (opcional, máx. 40 caracteres)</label>
                     <input
                       type="email"
                       value={clienteData.email}
-                      onChange={(e) =>
-                        setClienteData({
-                          ...clienteData,
-                          email: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleEmailChange(e, false, true)}
                       placeholder="tu@email.com"
+                      maxLength="40"
                       className="form-input"
                     />
+                    <small style={{ color: "#7c3aed", fontSize: "12px" }}>
+                      {clienteData.email.length}/40
+                    </small>
                   </div>
 
                   <div className="form-group">
@@ -794,38 +901,25 @@ const ClientCatalog = () => {
             </div>
 
             <div className="modal-body">
-              {error && (
-                <div
-                  style={{
-                    background: "#fee",
-                    color: "#c33",
-                    padding: "10px",
-                    borderRadius: "5px",
-                    marginBottom: "15px",
-                    textAlign: "center",
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-
               <form onSubmit={handleLogin}>
                 <div className="form-group">
-                  <label>Email:</label>
+                  <label>Email * (máx. 40 caracteres)</label>
                   <input
                     type="email"
                     value={loginData.email}
-                    onChange={(e) =>
-                      setLoginData({ ...loginData, email: e.target.value })
-                    }
+                    onChange={(e) => handleEmailChange(e, true, false)}
                     placeholder="tu@email.com"
                     required
+                    maxLength="40"
                     className="form-input"
                   />
+                  <small style={{ color: "#7c3aed", fontSize: "12px" }}>
+                    {loginData.email.length}/40
+                  </small>
                 </div>
 
                 <div className="form-group">
-                  <label>Contraseña:</label>
+                  <label>Contraseña *</label>
                   <input
                     type="password"
                     value={loginData.password}
@@ -863,7 +957,7 @@ const ClientCatalog = () => {
                   style={{
                     background: "none",
                     border: "none",
-                    color: "#3498db",
+                    color: "#a855f7",
                     textDecoration: "underline",
                     cursor: "pointer",
                     fontSize: "14px",
@@ -884,7 +978,7 @@ const ClientCatalog = () => {
                   style={{
                     background: "none",
                     border: "none",
-                    color: "#3498db",
+                    color: "#a855f7",
                     textDecoration: "underline",
                     cursor: "pointer",
                     fontSize: "14px",
@@ -913,58 +1007,41 @@ const ClientCatalog = () => {
             </div>
 
             <div className="modal-body">
-              {error && (
-                <div
-                  style={{
-                    background: "#fee",
-                    color: "#c33",
-                    padding: "10px",
-                    borderRadius: "5px",
-                    marginBottom: "15px",
-                    textAlign: "center",
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-
               <form onSubmit={handleRegistro}>
                 <div className="form-group">
-                  <label>Nombre Completo:</label>
+                  <label>Nombre Completo * (máx. 30 caracteres)</label>
                   <input
                     type="text"
                     value={registroData.nombre}
-                    onChange={(e) =>
-                      setRegistroData({
-                        ...registroData,
-                        nombre: e.target.value,
-                      })
-                    }
+                    onChange={(e) => handleNombreChange(e, false)}
                     placeholder="Tu nombre completo"
                     required
+                    maxLength="30"
                     className="form-input"
                   />
+                  <small style={{ color: "#7c3aed", fontSize: "12px" }}>
+                    {registroData.nombre.length}/30
+                  </small>
                 </div>
 
                 <div className="form-group">
-                  <label>Email:</label>
+                  <label>Email * (máx. 40 caracteres)</label>
                   <input
                     type="email"
                     value={registroData.email}
-                    onChange={(e) =>
-                      setRegistroData({
-                        ...registroData,
-                        email: e.target.value,
-                      })
-                    }
+                    onChange={(e) => handleEmailChange(e, false, false)}
                     placeholder="tu@email.com"
                     required
+                    maxLength="40"
                     className="form-input"
                   />
+                  <small style={{ color: "#7c3aed", fontSize: "12px" }}>
+                    {registroData.email.length}/40
+                  </small>
                 </div>
 
                 <div className="form-group">
-                  <label>Contraseña:</label>
+                  <label>Contraseña * (mínimo 6 caracteres)</label>
                   <input
                     type="password"
                     value={registroData.password}
@@ -982,20 +1059,20 @@ const ClientCatalog = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Teléfono:</label>
+                  <label>Teléfono * (8 dígitos)</label>
                   <input
                     type="tel"
                     value={registroData.telefono}
-                    onChange={(e) =>
-                      setRegistroData({
-                        ...registroData,
-                        telefono: e.target.value,
-                      })
-                    }
+                    onChange={(e) => handleTelefonoChange(e, false)}
                     placeholder="12345678"
                     required
+                    maxLength="8"
+                    pattern="[0-9]{8}"
                     className="form-input"
                   />
+                  <small style={{ color: "#7c3aed", fontSize: "12px" }}>
+                    {registroData.telefono.length}/8
+                  </small>
                 </div>
 
                 <div className="form-actions">
@@ -1023,7 +1100,7 @@ const ClientCatalog = () => {
                   style={{
                     background: "none",
                     border: "none",
-                    color: "#3498db",
+                    color: "#a855f7",
                     textDecoration: "underline",
                     cursor: "pointer",
                     fontSize: "14px",
@@ -1054,7 +1131,7 @@ const ClientCatalog = () => {
         <PasswordRecovery
           onClose={() => {
             setMostrarRecuperacion(false);
-            setMostrarLogin(true); // Volver al login después de cerrar
+            setMostrarLogin(true);
           }}
         />
       )}

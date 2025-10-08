@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
+import './Pedidos.css';
 
 const Pedidos = () => {
   const [pedidos, setPedidos] = useState([]);
@@ -13,14 +15,12 @@ const Pedidos = () => {
   
   const { hasPermission } = useAuth();
 
-  // Estados para filtros
   const [filtros, setFiltros] = useState({
     estado: 'todos',
     fechaInicio: '',
     fechaFin: ''
   });
 
-  // Estado para actualización
   const [updateData, setUpdateData] = useState({
     estado: '',
     notasAdmin: ''
@@ -41,6 +41,7 @@ const Pedidos = () => {
       setPedidos(response.data.pedidos);
     } catch (error) {
       console.error('Error al cargar pedidos:', error);
+      toast.error('❌ Error al cargar los pedidos');
       setError('Error al cargar los pedidos');
     } finally {
       setLoading(false);
@@ -48,12 +49,27 @@ const Pedidos = () => {
   };
 
   const handleViewDetails = async (pedidoId) => {
+    const toastId = toast.loading('Cargando detalles del pedido...');
+    
     try {
       const response = await axios.get(`/api/pedidos/admin/${pedidoId}`);
       setSelectedPedido(response.data.pedido);
       setShowDetails(true);
+      
+      toast.update(toastId, {
+        render: '✅ Detalles cargados',
+        type: 'success',
+        isLoading: false,
+        autoClose: 2000
+      });
     } catch (error) {
       console.error('Error al cargar detalles del pedido:', error);
+      toast.update(toastId, {
+        render: '❌ Error al cargar los detalles',
+        type: 'error',
+        isLoading: false,
+        autoClose: 3000
+      });
     }
   };
 
@@ -69,43 +85,69 @@ const Pedidos = () => {
   const submitStatusUpdate = async (e) => {
     e.preventDefault();
     
+    const toastId = toast.loading('Actualizando estado del pedido...');
+    
     try {
       await axios.put(`/api/pedidos/admin/${selectedPedido._id}/estado`, updateData);
-      alert('Estado actualizado exitosamente');
+      
+      toast.update(toastId, {
+        render: '✅ Estado actualizado exitosamente',
+        type: 'success',
+        isLoading: false,
+        autoClose: 3000
+      });
+      
       setShowUpdateStatus(false);
       setSelectedPedido(null);
       fetchPedidos();
     } catch (error) {
       console.error('Error al actualizar estado:', error);
-      alert(error.response?.data?.message || 'Error al actualizar el estado');
+      const errorMessage = error.response?.data?.message || 'Error al actualizar el estado';
+      
+      toast.update(toastId, {
+        render: `❌ ${errorMessage}`,
+        type: 'error',
+        isLoading: false,
+        autoClose: 4000
+      });
     }
+  };
+
+  const resetDetailsModal = () => {
+    setShowDetails(false);
+    setSelectedPedido(null);
+  };
+
+  const resetUpdateModal = () => {
+    setShowUpdateStatus(false);
+    setSelectedPedido(null);
+    setUpdateData({
+      estado: '',
+      notasAdmin: ''
+    });
   };
 
   const getEstadoInfo = (estado) => {
     const estadosInfo = {
       'en-proceso': {
-        color: '#f39c12',
         icon: '⏳',
         texto: 'En Proceso',
         bgColor: '#fff3cd',
         textColor: '#856404'
       },
       'cancelado': {
-        color: '#e74c3c',
         icon: '❌',
         texto: 'Cancelado',
         bgColor: '#f8d7da',
         textColor: '#721c24'
       },
       'listo-entrega': {
-        color: '#27ae60',
         icon: '✅',
         texto: 'Listo para Entrega',
         bgColor: '#d4edda',
         textColor: '#155724'
       },
       'entregado': {
-        color: '#95a5a6',
         icon: '📦',
         texto: 'Entregado',
         bgColor: '#e2e3e5',
@@ -142,11 +184,11 @@ const Pedidos = () => {
 
   if (!hasPermission('ventas')) {
     return (
-      <div>
-        <div className="page-header">
-          <h1 className="page-title">📦 Pedidos</h1>
+      <div className="pedidos-container">
+        <div className="pedidos-page-header">
+          <h1 className="pedidos-title">📦 Pedidos</h1>
         </div>
-        <div className="alert alert-error">
+        <div className="pedidos-alert-error">
           No tienes permisos para gestionar pedidos.
         </div>
       </div>
@@ -154,31 +196,27 @@ const Pedidos = () => {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <h1 className="page-title">📦 Gestión de Pedidos</h1>
-        <div className="header-stats">
-          <span>Total: {pedidos.length}</span>
+    <div className="pedidos-container">
+      <div className="pedidos-page-header">
+        <h1 className="pedidos-title">📦 Gestión de Pedidos</h1>
+        <div className="pedidos-header-stats">
+          Total: {pedidos.length}
         </div>
       </div>
 
-      {error && (
-        <div className="alert alert-error">
-          {error}
-        </div>
-      )}
+      {error && <div className="pedidos-alert-error">{error}</div>}
 
       {/* Filtros */}
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <div className="card-header">
+      <div className="pedidos-filters-card">
+        <div className="pedidos-filters-header">
           🔍 Filtros de Búsqueda
         </div>
-        <div className="card-body">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>Estado</label>
+        <div className="pedidos-filters-body">
+          <div className="pedidos-filters-grid">
+            <div className="pedidos-form-field">
+              <label className="pedidos-form-label">Estado</label>
               <select
-                className="form-control"
+                className="pedidos-form-select"
                 value={filtros.estado}
                 onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
               >
@@ -190,21 +228,21 @@ const Pedidos = () => {
               </select>
             </div>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>Fecha Inicio</label>
+            <div className="pedidos-form-field">
+              <label className="pedidos-form-label">Fecha Inicio</label>
               <input
                 type="date"
-                className="form-control"
+                className="pedidos-form-input"
                 value={filtros.fechaInicio}
                 onChange={(e) => setFiltros(prev => ({ ...prev, fechaInicio: e.target.value }))}
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>Fecha Fin</label>
+            <div className="pedidos-form-field">
+              <label className="pedidos-form-label">Fecha Fin</label>
               <input
                 type="date"
-                className="form-control"
+                className="pedidos-form-input"
                 value={filtros.fechaFin}
                 onChange={(e) => setFiltros(prev => ({ ...prev, fechaFin: e.target.value }))}
               />
@@ -214,20 +252,18 @@ const Pedidos = () => {
       </div>
 
       {/* Lista de pedidos */}
-      <div className="card">
-        <div className="card-header">
+      <div className="pedidos-card">
+        <div className="pedidos-card-header">
           📋 Lista de Pedidos ({pedidos.length})
         </div>
-        <div className="card-body">
+        <div className="pedidos-card-body">
           {loading ? (
-            <div className="loading">Cargando pedidos...</div>
+            <div className="pedidos-loading">Cargando pedidos...</div>
           ) : pedidos.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#7f8c8d' }}>
-              No hay pedidos para mostrar
-            </p>
+            <p className="pedidos-empty">No hay pedidos para mostrar</p>
           ) : (
-            <div className="table-container">
-              <table className="table">
+            <div className="pedidos-table-wrapper">
+              <table className="pedidos-table">
                 <thead>
                   <tr>
                     <th>Pedido</th>
@@ -243,76 +279,67 @@ const Pedidos = () => {
                   {pedidos.map((pedido) => (
                     <tr key={pedido._id}>
                       <td>
-                        <div>
-                          <strong>{pedido.numero}</strong>
-                          <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                        <div className="pedidos-order-info">
+                          <div className="pedidos-order-number">{pedido.numero}</div>
+                          <div className="pedidos-order-code">
                             Código: {pedido.codigoSeguimiento}
                           </div>
-                          <div style={{ fontSize: '12px', color: '#3498db' }}>
+                          <div className="pedidos-order-items">
                             {pedido.items.length} producto{pedido.items.length > 1 ? 's' : ''}
                           </div>
                         </div>
                       </td>
                       <td>
-                        <div>
-                          <strong>{pedido.cliente.nombre}</strong>
-                          <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                        <div className="pedidos-client-info">
+                          <div className="pedidos-client-name">{pedido.cliente.nombre}</div>
+                          <div className="pedidos-client-detail">
                             📞 {pedido.cliente.telefono}
                           </div>
                           {pedido.cliente.email && (
-                            <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                            <div className="pedidos-client-detail">
                               ✉️ {pedido.cliente.email}
                             </div>
                           )}
                         </div>
                       </td>
                       <td>
-                        <div style={{ fontSize: '14px' }}>
+                        <div className="pedidos-date">
                           {formatearFecha(pedido.fechaPedido)}
                         </div>
                       </td>
                       <td>
-                        <strong style={{ color: '#27ae60' }}>
+                        <div className="pedidos-total">
                           Q{pedido.total.toFixed(2)}
-                        </strong>
+                        </div>
                       </td>
                       <td>
-                        <span style={{
-                          padding: '6px 12px',
-                          borderRadius: '20px',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
+                        <span className="pedidos-status-badge" style={{
                           backgroundColor: getEstadoInfo(pedido.estado).bgColor,
-                          color: getEstadoInfo(pedido.estado).textColor,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px'
+                          color: getEstadoInfo(pedido.estado).textColor
                         }}>
                           {getEstadoInfo(pedido.estado).icon} {getEstadoInfo(pedido.estado).texto}
                         </span>
                         {pedido.estado !== 'entregado' && pedido.estado !== 'cancelado' && (
-                          <div style={{ fontSize: '11px', color: '#e67e22', marginTop: '4px' }}>
+                          <div className="pedidos-status-time">
                             {getTiempoTranscurrido(pedido.fechaPedido)}
                           </div>
                         )}
                       </td>
                       <td>
-                        <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                        <div className="pedidos-elapsed-time">
                           {getTiempoTranscurrido(pedido.fechaEstadoActual)}
                         </div>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                        <div className="pedidos-actions">
                           <button
-                            className="btn btn-primary"
-                            style={{ fontSize: '12px', padding: '5px 10px' }}
+                            className="pedidos-btn-view"
                             onClick={() => handleViewDetails(pedido._id)}
                           >
                             👁️ Ver
                           </button>
                           <button
-                            className="btn btn-secondary"
-                            style={{ fontSize: '12px', padding: '5px 10px' }}
+                            className="pedidos-btn-status"
                             onClick={() => handleUpdateStatus(pedido)}
                           >
                             ✏️ Estado
@@ -328,253 +355,220 @@ const Pedidos = () => {
         </div>
       </div>
 
-      {/* Modal de detalles del pedido */}
+      {/* Modal de detalles */}
       {showDetails && selectedPedido && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-          padding: '1rem'
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            maxWidth: '900px',
-            width: '90%',
-            maxHeight: '90vh',
-            overflow: 'auto'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3>📦 Detalle del Pedido {selectedPedido.numero}</h3>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowDetails(false)}
-              >
-                Cerrar
-              </button>
+        <div className="pedidos-modal-overlay" onClick={resetDetailsModal}>
+          <div className="pedidos-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pedidos-modal-header">
+              Detalle del Pedido {selectedPedido.numero}
+              <button className="pedidos-modal-close" onClick={resetDetailsModal}>×</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-              {/* Información del pedido */}
-              <div>
-                <h4>📋 Información del Pedido</h4>
-                <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px' }}>
-                  <p><strong>Número:</strong> {selectedPedido.numero}</p>
-                  <p><strong>Código de Seguimiento:</strong> {selectedPedido.codigoSeguimiento}</p>
-                  <p><strong>Fecha:</strong> {formatearFecha(selectedPedido.fechaPedido)}</p>
-                  <p><strong>Total:</strong> Q{selectedPedido.total.toFixed(2)}</p>
-                  <p>
-                    <strong>Estado:</strong> 
-                    <span style={{
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
+            <div className="pedidos-modal-body">
+              <div className="pedidos-info-grid">
+                {/* Información del pedido */}
+                <div className="pedidos-info-section">
+                  <h4 className="pedidos-section-title">📋 Información del Pedido</h4>
+                  <div className="pedidos-info-item">
+                    <span className="pedidos-info-label">Número:</span>
+                    <span className="pedidos-info-value">{selectedPedido.numero}</span>
+                  </div>
+                  <div className="pedidos-info-item">
+                    <span className="pedidos-info-label">Código de Seguimiento:</span>
+                    <span className="pedidos-info-value">{selectedPedido.codigoSeguimiento}</span>
+                  </div>
+                  <div className="pedidos-info-item">
+                    <span className="pedidos-info-label">Fecha:</span>
+                    <span className="pedidos-info-value">{formatearFecha(selectedPedido.fechaPedido)}</span>
+                  </div>
+                  <div className="pedidos-info-item">
+                    <span className="pedidos-info-label">Total:</span>
+                    <span className="pedidos-info-value pedidos-total-highlight">Q{selectedPedido.total.toFixed(2)}</span>
+                  </div>
+                  <div className="pedidos-info-item">
+                    <span className="pedidos-info-label">Estado:</span>
+                    <span className="pedidos-status-badge" style={{
                       backgroundColor: getEstadoInfo(selectedPedido.estado).bgColor,
                       color: getEstadoInfo(selectedPedido.estado).textColor,
                       marginLeft: '8px'
                     }}>
                       {getEstadoInfo(selectedPedido.estado).icon} {getEstadoInfo(selectedPedido.estado).texto}
                     </span>
-                  </p>
+                  </div>
                   {selectedPedido.fechaEstadoActual !== selectedPedido.fechaPedido && (
-                    <p><strong>Última actualización:</strong> {formatearFecha(selectedPedido.fechaEstadoActual)}</p>
+                    <div className="pedidos-info-item">
+                      <span className="pedidos-info-label">Última actualización:</span>
+                      <span className="pedidos-info-value">{formatearFecha(selectedPedido.fechaEstadoActual)}</span>
+                    </div>
                   )}
                 </div>
-              </div>
 
-              {/* Información del cliente */}
-              <div>
-                <h4>👤 Información del Cliente</h4>
-                <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px' }}>
-                  <p><strong>Nombre:</strong> {selectedPedido.cliente.nombre}</p>
-                  <p><strong>Teléfono:</strong> {selectedPedido.cliente.telefono}</p>
+                {/* Información del cliente */}
+                <div className="pedidos-info-section">
+                  <h4 className="pedidos-section-title">👤 Información del Cliente</h4>
+                  <div className="pedidos-info-item">
+                    <span className="pedidos-info-label">Nombre:</span>
+                    <span className="pedidos-info-value">{selectedPedido.cliente.nombre}</span>
+                  </div>
+                  <div className="pedidos-info-item">
+                    <span className="pedidos-info-label">Teléfono:</span>
+                    <span className="pedidos-info-value">{selectedPedido.cliente.telefono}</span>
+                  </div>
                   {selectedPedido.cliente.email && (
-                    <p><strong>Email:</strong> {selectedPedido.cliente.email}</p>
+                    <div className="pedidos-info-item">
+                      <span className="pedidos-info-label">Email:</span>
+                      <span className="pedidos-info-value">{selectedPedido.cliente.email}</span>
+                    </div>
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Items del pedido */}
-            <div style={{ marginBottom: '20px' }}>
-              <h4>🛍️ Productos del Pedido</h4>
-              <div className="table-container">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Producto</th>
-                      <th>Cantidad</th>
-                      <th>Precio Unit.</th>
-                      <th>Subtotal</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedPedido.items.map((item, index) => (
-                      <tr key={index}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            {item.imagenUrl && (
-                              <img
-                                src={item.imagenUrl}
-                                alt={item.nombre}
-                                style={{
-                                  width: '40px',
-                                  height: '40px',
-                                  objectFit: 'cover',
-                                  borderRadius: '4px'
-                                }}
-                              />
-                            )}
-                            <div>
-                              <strong>{item.nombre}</strong>
-                              {item.producto?.categoria && (
-                                <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
-                                  {item.producto.categoria}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td>{item.cantidad}</td>
-                        <td>Q{item.precioUnitario.toFixed(2)}</td>
-                        <td><strong>Q{item.subtotal.toFixed(2)}</strong></td>
+              {/* Items del pedido */}
+              <div className="pedidos-products-section">
+                <h4 className="pedidos-section-title">🛒 Productos del Pedido</h4>
+                <div className="pedidos-table-wrapper">
+                  <table className="pedidos-table">
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unit.</th>
+                        <th>Subtotal</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {selectedPedido.items.map((item, index) => (
+                        <tr key={index}>
+                          <td>
+                            <div className="pedidos-product-item">
+                              {item.imagenUrl && (
+                                <img
+                                  src={item.imagenUrl}
+                                  alt={item.nombre}
+                                  className="pedidos-product-image"
+                                />
+                              )}
+                              <div className="pedidos-product-details">
+                                <div className="pedidos-product-name">{item.nombre}</div>
+                                {item.producto?.categoria && (
+                                  <div className="pedidos-product-category">
+                                    {item.producto.categoria}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td>{item.cantidad}</td>
+                          <td>Q{item.precioUnitario.toFixed(2)}</td>
+                          <td><strong>Q{item.subtotal.toFixed(2)}</strong></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="pedidos-total-section">
+                  <div className="pedidos-total-label">Total del Pedido:</div>
+                  <div className="pedidos-total-amount">Q{selectedPedido.total.toFixed(2)}</div>
+                </div>
               </div>
-              <div style={{ textAlign: 'right', marginTop: '10px' }}>
-                <h3 style={{ color: '#27ae60' }}>Total: Q{selectedPedido.total.toFixed(2)}</h3>
-              </div>
-            </div>
 
-            {/* Notas */}
-            {(selectedPedido.notasCliente || selectedPedido.notasAdmin) && (
-              <div>
-                <h4>📝 Notas</h4>
-                {selectedPedido.notasCliente && (
-                  <div style={{ marginBottom: '15px' }}>
-                    <h5 style={{ color: '#3498db' }}>Notas del cliente:</h5>
-                    <div style={{ background: '#e3f2fd', padding: '10px', borderRadius: '8px', borderLeft: '4px solid #2196f3' }}>
-                      {selectedPedido.notasCliente}
+              {/* Notas */}
+              {(selectedPedido.notasCliente || selectedPedido.notasAdmin) && (
+                <div className="pedidos-notes-section">
+                  <h4 className="pedidos-section-title">📝 Notas</h4>
+                  {selectedPedido.notasCliente && (
+                    <div className="pedidos-note-box pedidos-note-client">
+                      <div className="pedidos-note-title">💬 Notas del cliente:</div>
+                      <div className="pedidos-note-content">{selectedPedido.notasCliente}</div>
                     </div>
-                  </div>
-                )}
-                {selectedPedido.notasAdmin && (
-                  <div>
-                    <h5 style={{ color: '#e67e22' }}>Notas del administrador:</h5>
-                    <div style={{ background: '#fff3e0', padding: '10px', borderRadius: '8px', borderLeft: '4px solid #ff9800' }}>
-                      {selectedPedido.notasAdmin}
+                  )}
+                  {selectedPedido.notasAdmin && (
+                    <div className="pedidos-note-box pedidos-note-admin">
+                      <div className="pedidos-note-title">🔒 Notas del administrador:</div>
+                      <div className="pedidos-note-content">{selectedPedido.notasAdmin}</div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {/* Modal de actualización de estado */}
       {showUpdateStatus && selectedPedido && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-          padding: '1rem'
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            maxWidth: '500px',
-            width: '90%'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3>✏️ Actualizar Estado del Pedido</h3>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowUpdateStatus(false)}
-              >
-                Cerrar
-              </button>
+        <div className="pedidos-modal-overlay" onClick={resetUpdateModal}>
+          <div className="pedidos-modal pedidos-modal-small" onClick={(e) => e.stopPropagation()}>
+            <div className="pedidos-modal-header">
+              <span>Actualizar Estado del Pedido</span>
+              <button className="pedidos-modal-close" onClick={resetUpdateModal}>×</button>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <h4>Pedido: {selectedPedido.numero}</h4>
-              <p><strong>Cliente:</strong> {selectedPedido.cliente.nombre}</p>
-              <p><strong>Total:</strong> Q{selectedPedido.total.toFixed(2)}</p>
-              <p>
-                <strong>Estado actual:</strong> 
-                <span style={{
-                  padding: '4px 8px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  backgroundColor: getEstadoInfo(selectedPedido.estado).bgColor,
-                  color: getEstadoInfo(selectedPedido.estado).textColor,
-                  marginLeft: '8px'
-                }}>
-                  {getEstadoInfo(selectedPedido.estado).texto}
-                </span>
-              </p>
+            <div className="pedidos-modal-body">
+              <div className="pedidos-update-info">
+                <div className="pedidos-update-info-row">
+                  <span className="pedidos-update-label">Pedido:</span>
+                  <span className="pedidos-update-value">{selectedPedido.numero}</span>
+                </div>
+                <div className="pedidos-update-info-row">
+                  <span className="pedidos-update-label">Cliente:</span>
+                  <span className="pedidos-update-value">{selectedPedido.cliente.nombre}</span>
+                </div>
+                <div className="pedidos-update-info-row">
+                  <span className="pedidos-update-label">Total:</span>
+                  <span className="pedidos-update-value">Q{selectedPedido.total.toFixed(2)}</span>
+                </div>
+                <div className="pedidos-update-info-row">
+                  <span className="pedidos-update-label">Estado actual:</span>
+                  <span className="pedidos-status-badge" style={{
+                    backgroundColor: getEstadoInfo(selectedPedido.estado).bgColor,
+                    color: getEstadoInfo(selectedPedido.estado).textColor
+                  }}>
+                    {getEstadoInfo(selectedPedido.estado).icon} {getEstadoInfo(selectedPedido.estado).texto}
+                  </span>
+                </div>
+              </div>
+
+              <form onSubmit={submitStatusUpdate}>
+                <div className="pedidos-form-field">
+                  <label className="pedidos-form-label">Nuevo Estado *</label>
+                  <select
+                    className="pedidos-form-select"
+                    value={updateData.estado}
+                    onChange={(e) => setUpdateData(prev => ({ ...prev, estado: e.target.value }))}
+                    required
+                  >
+                    <option value="en-proceso">⏳ En Proceso</option>
+                    <option value="listo-entrega">✅ Listo para Entrega</option>
+                    <option value="entregado">📦 Entregado</option>
+                    <option value="cancelado">❌ Cancelado</option>
+                  </select>
+                </div>
+
+                <div className="pedidos-form-field">
+                  <label className="pedidos-form-label">Notas del Administrador</label>
+                  <textarea
+                    className="pedidos-form-textarea"
+                    value={updateData.notasAdmin}
+                    onChange={(e) => setUpdateData(prev => ({ ...prev, notasAdmin: e.target.value }))}
+                    placeholder="Agregar notas internas sobre el estado del pedido..."
+                  />
+                </div>
+
+                <div className="pedidos-form-actions">
+                  <button 
+                    type="button" 
+                    className="pedidos-btn-cancel" 
+                    onClick={resetUpdateModal}
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="pedidos-btn-submit">
+                    Actualizar Estado
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={submitStatusUpdate}>
-              <div className="form-group">
-                <label>Nuevo Estado *</label>
-                <select
-                  className="form-control"
-                  value={updateData.estado}
-                  onChange={(e) => setUpdateData(prev => ({ ...prev, estado: e.target.value }))}
-                  required
-                >
-                  <option value="en-proceso">⏳ En Proceso</option>
-                  <option value="listo-entrega">✅ Listo para Entrega</option>
-                  <option value="entregado">📦 Entregado</option>
-                  <option value="cancelado">❌ Cancelado</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Notas del Administrador</label>
-                <textarea
-                  className="form-control"
-                  rows="4"
-                  value={updateData.notasAdmin}
-                  onChange={(e) => setUpdateData(prev => ({ ...prev, notasAdmin: e.target.value }))}
-                  placeholder="Agregar notas internas sobre el estado del pedido..."
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'end' }}>
-                <button 
-                  type="button" 
-                  className="btn btn-secondary" 
-                  onClick={() => setShowUpdateStatus(false)}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Actualizar Estado
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

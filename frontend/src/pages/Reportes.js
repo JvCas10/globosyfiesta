@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import './Reportes.css';
 
 const Reportes = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -14,7 +15,6 @@ const Reportes = () => {
   
   const { hasPermission, isOwner } = useAuth();
 
-  // Estados para filtros de reportes
   const [filtrosVentas, setFiltrosVentas] = useState({
     fechaInicio: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     fechaFin: new Date().toISOString().split('T')[0]
@@ -113,11 +113,11 @@ const Reportes = () => {
 
   if (!hasPermission('reportes')) {
     return (
-      <div>
-        <div className="page-header">
-          <h1 className="page-title">📈 Reportes</h1>
+      <div className="reportes-container">
+        <div className="reportes-page-header">
+          <h1 className="reportes-title">📈 Reportes</h1>
         </div>
-        <div className="alert alert-error">
+        <div className="reportes-alert-error">
           No tienes permisos para ver los reportes.
         </div>
       </div>
@@ -125,79 +125,77 @@ const Reportes = () => {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <h1 className="page-title">📈 Reportes y Estadísticas</h1>
+    <div className="reportes-container">
+      <div className="reportes-page-header">
+        <h1 className="reportes-title">📈 Reportes y Estadísticas</h1>
       </div>
 
       {error && (
-        <div className="alert alert-error">
+        <div className="reportes-alert-error">
           {error}
         </div>
       )}
 
       {/* Tabs de navegación */}
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <div className="card-body">
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              className={`btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => handleTabChange('dashboard')}
-            >
-              📊 Dashboard
-            </button>
-            <button
-              className={`btn ${activeTab === 'ventas' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => handleTabChange('ventas')}
-            >
-              💰 Ventas
-            </button>
-            <button
-              className={`btn ${activeTab === 'inventario' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => handleTabChange('inventario')}
-            >
-              📦 Inventario
-            </button>
-            <button
-              className={`btn ${activeTab === 'clientes' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => handleTabChange('clientes')}
-            >
-              👥 Clientes
-            </button>
-          </div>
+      <div className="reportes-tabs-card">
+        <div className="reportes-tabs-container">
+          <button
+            className={`reportes-tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => handleTabChange('dashboard')}
+          >
+            📊 Dashboard
+          </button>
+          <button
+            className={`reportes-tab-btn ${activeTab === 'ventas' ? 'active' : ''}`}
+            onClick={() => handleTabChange('ventas')}
+          >
+            💰 Ventas
+          </button>
+          <button
+            className={`reportes-tab-btn ${activeTab === 'inventario' ? 'active' : ''}`}
+            onClick={() => handleTabChange('inventario')}
+          >
+            📦 Inventario
+          </button>
+          <button
+            className={`reportes-tab-btn ${activeTab === 'clientes' ? 'active' : ''}`}
+            onClick={() => handleTabChange('clientes')}
+          >
+            👥 Clientes
+          </button>
         </div>
       </div>
 
-      {loading && <div className="loading">Cargando datos...</div>}
+      {loading && <div className="reportes-loading">Cargando datos...</div>}
 
       {/* Dashboard Principal */}
       {activeTab === 'dashboard' && dashboardData && (
         <div>
           {/* Resumen del día */}
-          <div className="card" style={{ marginBottom: '20px' }}>
-            <div className="card-header">
+          <div className="reportes-card">
+            <div className="reportes-card-header">
               📊 Resumen del Día - {new Date().toLocaleDateString()}
             </div>
-            <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#3498db' }}>
+            <div className="reportes-card-body">
+              <div className="reportes-stats-grid">
+                <div className="reportes-stat-box">
+                  <div className="reportes-stat-value reportes-stat-blue">
                     {dashboardData.resumenDiario.ventasHoy}
                   </div>
-                  <div>Ventas Hoy</div>
+                  <div className="reportes-stat-label">Ventas Hoy</div>
                 </div>
-                <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#27ae60' }}>
+                <div className="reportes-stat-box">
+                  <div className="reportes-stat-value reportes-stat-green">
                     Q{dashboardData.resumenDiario.montoHoy.toFixed(2)}
                   </div>
-                  <div>Ingresos Hoy</div>
+                  <div className="reportes-stat-label">Ingresos Hoy</div>
                 </div>
                 {isOwner() && dashboardData.resumenDiario.gananciaHoy !== null && (
-                  <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#e67e22' }}>
+                  <div className="reportes-stat-box">
+                    <div className="reportes-stat-value reportes-stat-orange">
                       Q{dashboardData.resumenDiario.gananciaHoy.toFixed(2)}
                     </div>
-                    <div>Ganancia Hoy</div>
+                    <div className="reportes-stat-label">Ganancia Hoy</div>
                   </div>
                 )}
               </div>
@@ -205,50 +203,50 @@ const Reportes = () => {
           </div>
 
           {/* Resumen del mes */}
-          <div className="card" style={{ marginBottom: '20px' }}>
-            <div className="card-header">
+          <div className="reportes-card">
+            <div className="reportes-card-header">
               📅 Resumen del Mes
             </div>
-            <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#e8f5e8', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#27ae60' }}>
+            <div className="reportes-card-body">
+              <div className="reportes-stats-grid">
+                <div className="reportes-stat-box reportes-stat-box-green">
+                  <div className="reportes-stat-value reportes-stat-green">
                     {dashboardData.resumenMensual.ventasMes}
                   </div>
-                  <div>Ventas del Mes</div>
+                  <div className="reportes-stat-label">Ventas del Mes</div>
                 </div>
-                <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#e8f5e8', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#27ae60' }}>
+                <div className="reportes-stat-box reportes-stat-box-green">
+                  <div className="reportes-stat-value reportes-stat-green">
                     Q{dashboardData.resumenMensual.montoMes.toFixed(2)}
                   </div>
-                  <div>Ingresos del Mes</div>
+                  <div className="reportes-stat-label">Ingresos del Mes</div>
                 </div>
                 {isOwner() && dashboardData.resumenMensual.gananciaMes !== null && (
-                  <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#e8f5e8', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#27ae60' }}>
+                  <div className="reportes-stat-box reportes-stat-box-green">
+                    <div className="reportes-stat-value reportes-stat-green">
                       Q{dashboardData.resumenMensual.gananciaMes.toFixed(2)}
                     </div>
-                    <div>Ganancia del Mes</div>
+                    <div className="reportes-stat-label">Ganancia del Mes</div>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div className="reportes-two-column-grid">
             {/* Productos con stock bajo */}
-            <div className="card">
-              <div className="card-header">
+            <div className="reportes-card">
+              <div className="reportes-card-header">
                 ⚠️ Productos con Stock Bajo
               </div>
-              <div className="card-body">
+              <div className="reportes-card-body">
                 {dashboardData.inventario.listaBajo.length === 0 ? (
-                  <p style={{ textAlign: 'center', color: '#27ae60' }}>
+                  <p className="reportes-message-success">
                     ✅ Todos los productos tienen stock suficiente
                   </p>
                 ) : (
-                  <div className="table-container">
-                    <table className="table">
+                  <div className="reportes-table-wrapper">
+                    <table className="reportes-table">
                       <thead>
                         <tr>
                           <th>Producto</th>
@@ -260,7 +258,7 @@ const Reportes = () => {
                         {dashboardData.inventario.listaBajo.map((producto) => (
                           <tr key={producto._id}>
                             <td>{producto.nombre}</td>
-                            <td style={{ color: '#e74c3c', fontWeight: 'bold' }}>
+                            <td className="reportes-stock-low">
                               {producto.stock}
                             </td>
                             <td>{producto.stockMinimo}</td>
@@ -274,18 +272,18 @@ const Reportes = () => {
             </div>
 
             {/* Top productos */}
-            <div className="card">
-              <div className="card-header">
+            <div className="reportes-card">
+              <div className="reportes-card-header">
                 🏆 Productos Más Vendidos
               </div>
-              <div className="card-body">
+              <div className="reportes-card-body">
                 {dashboardData.topProductos.length === 0 ? (
-                  <p style={{ textAlign: 'center', color: '#7f8c8d' }}>
+                  <p className="reportes-message-empty">
                     No hay ventas este mes
                   </p>
                 ) : (
-                  <div className="table-container">
-                    <table className="table">
+                  <div className="reportes-table-wrapper">
+                    <table className="reportes-table">
                       <thead>
                         <tr>
                           <th>Producto</th>
@@ -315,18 +313,18 @@ const Reportes = () => {
           </div>
 
           {/* Clientes frecuentes */}
-          <div className="card" style={{ marginTop: '20px' }}>
-            <div className="card-header">
+          <div className="reportes-card">
+            <div className="reportes-card-header">
               💎 Clientes Frecuentes
             </div>
-            <div className="card-body">
+            <div className="reportes-card-body">
               {dashboardData.clientesFrecuentes.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#7f8c8d' }}>
+                <p className="reportes-message-empty">
                   No hay clientes frecuentes aún
                 </p>
               ) : (
-                <div className="table-container">
-                  <table className="table">
+                <div className="reportes-table-wrapper">
+                  <table className="reportes-table">
                     <thead>
                       <tr>
                         <th>Cliente</th>
@@ -356,31 +354,31 @@ const Reportes = () => {
       {/* Reporte de Ventas */}
       {activeTab === 'ventas' && (
         <div>
-          <div className="card" style={{ marginBottom: '20px' }}>
-            <div className="card-header">
+          <div className="reportes-card">
+            <div className="reportes-card-header">
               💰 Filtros del Reporte de Ventas
             </div>
-            <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', alignItems: 'end' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Fecha Inicio</label>
+            <div className="reportes-card-body">
+              <div className="reportes-filters-grid">
+                <div className="reportes-form-field">
+                  <label className="reportes-form-label">Fecha Inicio</label>
                   <input
                     type="date"
-                    className="form-control"
+                    className="reportes-form-input"
                     value={filtrosVentas.fechaInicio}
                     onChange={(e) => setFiltrosVentas(prev => ({ ...prev, fechaInicio: e.target.value }))}
                   />
                 </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Fecha Fin</label>
+                <div className="reportes-form-field">
+                  <label className="reportes-form-label">Fecha Fin</label>
                   <input
                     type="date"
-                    className="form-control"
+                    className="reportes-form-input"
                     value={filtrosVentas.fechaFin}
                     onChange={(e) => setFiltrosVentas(prev => ({ ...prev, fechaFin: e.target.value }))}
                   />
                 </div>
-                <button className="btn btn-primary" onClick={fetchReporteVentas}>
+                <button className="reportes-btn-generate" onClick={fetchReporteVentas}>
                   Generar Reporte
                 </button>
               </div>
@@ -389,49 +387,49 @@ const Reportes = () => {
 
           {reporteVentas && (
             <div>
-              <div className="card" style={{ marginBottom: '20px' }}>
-                <div className="card-header">
+              <div className="reportes-card">
+                <div className="reportes-card-header">
                   📊 Resumen del Período
                 </div>
-                <div className="card-body">
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                    <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3498db' }}>
+                <div className="reportes-card-body">
+                  <div className="reportes-stats-grid">
+                    <div className="reportes-stat-box">
+                      <div className="reportes-stat-value reportes-stat-blue">
                         {reporteVentas.resumen.totalVentas}
                       </div>
-                      <div>Total Ventas</div>
+                      <div className="reportes-stat-label">Total Ventas</div>
                     </div>
-                    <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#27ae60' }}>
+                    <div className="reportes-stat-box">
+                      <div className="reportes-stat-value reportes-stat-green">
                         Q{reporteVentas.resumen.montoTotal.toFixed(2)}
                       </div>
-                      <div>Monto Total</div>
+                      <div className="reportes-stat-label">Monto Total</div>
                     </div>
-                    <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#9b59b6' }}>
+                    <div className="reportes-stat-box">
+                      <div className="reportes-stat-value reportes-stat-purple">
                         Q{reporteVentas.resumen.promedioVenta.toFixed(2)}
                       </div>
-                      <div>Promedio por Venta</div>
+                      <div className="reportes-stat-label">Promedio por Venta</div>
                     </div>
                     {isOwner() && reporteVentas.resumen.gananciaTotal !== null && (
-                      <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#e67e22' }}>
+                      <div className="reportes-stat-box">
+                        <div className="reportes-stat-value reportes-stat-orange">
                           Q{reporteVentas.resumen.gananciaTotal.toFixed(2)}
                         </div>
-                        <div>Ganancia Total</div>
+                        <div className="reportes-stat-label">Ganancia Total</div>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="card">
-                <div className="card-header">
+              <div className="reportes-card">
+                <div className="reportes-card-header">
                   📈 Ventas por Día
                 </div>
-                <div className="card-body">
-                  <div className="table-container">
-                    <table className="table">
+                <div className="reportes-card-body">
+                  <div className="reportes-table-wrapper">
+                    <table className="reportes-table">
                       <thead>
                         <tr>
                           <th>Fecha</th>
@@ -460,16 +458,16 @@ const Reportes = () => {
       {/* Reporte de Inventario */}
       {activeTab === 'inventario' && (
         <div>
-          <div className="card" style={{ marginBottom: '20px' }}>
-            <div className="card-header">
+          <div className="reportes-card">
+            <div className="reportes-card-header">
               📦 Filtros del Reporte de Inventario
             </div>
-            <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', alignItems: 'end' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Categoría</label>
+            <div className="reportes-card-body">
+              <div className="reportes-filters-grid">
+                <div className="reportes-form-field">
+                  <label className="reportes-form-label">Categoría</label>
                   <select
-                    className="form-control"
+                    className="reportes-form-select"
                     value={filtrosInventario.categoria}
                     onChange={(e) => setFiltrosInventario(prev => ({ ...prev, categoria: e.target.value }))}
                   >
@@ -481,8 +479,8 @@ const Reportes = () => {
                     <option value="otros">Otros</option>
                   </select>
                 </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <div className="reportes-form-field">
+                  <label className="reportes-checkbox-label">
                     <input
                       type="checkbox"
                       checked={filtrosInventario.stockBajo}
@@ -491,7 +489,7 @@ const Reportes = () => {
                     Solo Stock Bajo
                   </label>
                 </div>
-                <button className="btn btn-primary" onClick={fetchReporteInventario}>
+                <button className="reportes-btn-generate" onClick={fetchReporteInventario}>
                   Generar Reporte
                 </button>
               </div>
@@ -500,30 +498,30 @@ const Reportes = () => {
 
           {reporteInventario && (
             <div>
-              <div className="card" style={{ marginBottom: '20px' }}>
-                <div className="card-header">
+              <div className="reportes-card">
+                <div className="reportes-card-header">
                   📊 Resumen de Inventario
                 </div>
-                <div className="card-body">
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                    <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3498db' }}>
+                <div className="reportes-card-body">
+                  <div className="reportes-stats-grid">
+                    <div className="reportes-stat-box">
+                      <div className="reportes-stat-value reportes-stat-blue">
                         {reporteInventario.resumen.totalProductos}
                       </div>
-                      <div>Total Productos</div>
+                      <div className="reportes-stat-label">Total Productos</div>
                     </div>
-                    <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#e74c3c' }}>
+                    <div className="reportes-stat-box">
+                      <div className="reportes-stat-value reportes-stat-red">
                         {reporteInventario.resumen.productosStockBajo}
                       </div>
-                      <div>Stock Bajo</div>
+                      <div className="reportes-stat-label">Stock Bajo</div>
                     </div>
                     {isOwner() && reporteInventario.resumen.valorInventarioTotal !== null && (
-                      <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#27ae60' }}>
+                      <div className="reportes-stat-box">
+                        <div className="reportes-stat-value reportes-stat-green">
                           Q{reporteInventario.resumen.valorInventarioTotal.toFixed(2)}
                         </div>
-                        <div>Valor Inventario</div>
+                        <div className="reportes-stat-label">Valor Inventario</div>
                       </div>
                     )}
                   </div>
@@ -531,13 +529,13 @@ const Reportes = () => {
               </div>
 
               {reporteInventario.productosPorCategoria.map((categoria) => (
-                <div key={categoria.categoria} className="card" style={{ marginBottom: '20px' }}>
-                  <div className="card-header">
+                <div key={categoria.categoria} className="reportes-card reportes-category-section">
+                  <div className="reportes-card-header">
                     📦 {categoria.categoria.charAt(0).toUpperCase() + categoria.categoria.slice(1)} ({categoria.cantidadProductos} productos)
                   </div>
-                  <div className="card-body">
-                    <div className="table-container">
-                      <table className="table">
+                  <div className="reportes-card-body">
+                    <div className="reportes-table-wrapper">
+                      <table className="reportes-table">
                         <thead>
                           <tr>
                             <th>Producto</th>
@@ -551,10 +549,7 @@ const Reportes = () => {
                           {categoria.productos.map((producto) => (
                             <tr key={producto._id}>
                               <td>{producto.nombre}</td>
-                              <td style={{ 
-                                color: producto.stockBajo ? '#e74c3c' : '#27ae60',
-                                fontWeight: producto.stockBajo ? 'bold' : 'normal'
-                              }}>
+                              <td className={producto.stockBajo ? 'reportes-stock-low' : 'reportes-stock-ok'}>
                                 {producto.stock}
                                 {producto.stockBajo && ' ⚠️'}
                               </td>
@@ -562,9 +557,9 @@ const Reportes = () => {
                               {isOwner() && <td>{producto.margen}%</td>}
                               <td>
                                 {producto.stockBajo ? (
-                                  <span style={{ color: '#e74c3c' }}>Stock Bajo</span>
+                                  <span className="reportes-status-low">Stock Bajo</span>
                                 ) : (
-                                  <span style={{ color: '#27ae60' }}>Normal</span>
+                                  <span className="reportes-status-normal">Normal</span>
                                 )}
                               </td>
                             </tr>
@@ -583,16 +578,16 @@ const Reportes = () => {
       {/* Reporte de Clientes */}
       {activeTab === 'clientes' && (
         <div>
-          <div className="card" style={{ marginBottom: '20px' }}>
-            <div className="card-header">
+          <div className="reportes-card">
+            <div className="reportes-card-header">
               👥 Filtros del Reporte de Clientes
             </div>
-            <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', alignItems: 'end' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Tipo de Cliente</label>
+            <div className="reportes-card-body">
+              <div className="reportes-filters-grid reportes-filters-grid-2">
+                <div className="reportes-form-field">
+                  <label className="reportes-form-label">Tipo de Cliente</label>
                   <select
-                    className="form-control"
+                    className="reportes-form-select"
                     value={filtrosClientes.tipoCliente}
                     onChange={(e) => setFiltrosClientes(prev => ({ ...prev, tipoCliente: e.target.value }))}
                   >
@@ -603,7 +598,7 @@ const Reportes = () => {
                     <option value="empresa">Empresa</option>
                   </select>
                 </div>
-                <button className="btn btn-primary" onClick={fetchReporteClientes}>
+                <button className="reportes-btn-generate" onClick={fetchReporteClientes}>
                   Generar Reporte
                 </button>
               </div>
@@ -612,47 +607,47 @@ const Reportes = () => {
 
           {reporteClientes && (
             <div>
-              <div className="card" style={{ marginBottom: '20px' }}>
-                <div className="card-header">
+              <div className="reportes-card">
+                <div className="reportes-card-header">
                   📊 Resumen de Clientes
                 </div>
-                <div className="card-body">
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
-                    <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3498db' }}>
+                <div className="reportes-card-body">
+                  <div className="reportes-stats-grid">
+                    <div className="reportes-stat-box">
+                      <div className="reportes-stat-value reportes-stat-blue">
                         {reporteClientes.resumen.totalClientes}
                       </div>
-                      <div>Total Clientes</div>
+                      <div className="reportes-stat-label">Total Clientes</div>
                     </div>
-                    <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#27ae60' }}>
+                    <div className="reportes-stat-box">
+                      <div className="reportes-stat-value reportes-stat-green">
                         {reporteClientes.resumen.clientesActivos}
                       </div>
-                      <div>Clientes Activos</div>
+                      <div className="reportes-stat-label">Clientes Activos</div>
                     </div>
-                    <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#9b59b6' }}>
+                    <div className="reportes-stat-box">
+                      <div className="reportes-stat-value reportes-stat-purple">
                         {reporteClientes.resumen.clientesFrecuentes}
                       </div>
-                      <div>Clientes Frecuentes</div>
+                      <div className="reportes-stat-label">Clientes Frecuentes</div>
                     </div>
-                    <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#e67e22' }}>
+                    <div className="reportes-stat-box">
+                      <div className="reportes-stat-value reportes-stat-orange">
                         {reporteClientes.resumen.clientesNuevos}
                       </div>
-                      <div>Clientes Nuevos</div>
+                      <div className="reportes-stat-label">Clientes Nuevos</div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="card">
-                <div className="card-header">
+              <div className="reportes-card">
+                <div className="reportes-card-header">
                   🏆 Top 10 Clientes
                 </div>
-                <div className="card-body">
-                  <div className="table-container">
-                    <table className="table">
+                <div className="reportes-card-body">
+                  <div className="reportes-table-wrapper">
+                    <table className="reportes-table">
                       <thead>
                         <tr>
                           <th>Cliente</th>

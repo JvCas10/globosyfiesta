@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import './Dashboard.css';
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -31,16 +32,16 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return <div className="loading">Cargando dashboard...</div>;
+    return <div className="dashboard-loading">Cargando dashboard...</div>;
   }
 
   if (!hasPermission('reportes')) {
     return (
-      <div>
-        <div className="page-header">
-          <h1 className="page-title">Dashboard</h1>
+      <div className="dashboard-container">
+        <div className="dashboard-page-header">
+          <h1 className="dashboard-title">Dashboard</h1>
         </div>
-        <div className="alert alert-error">
+        <div className="dashboard-alert-error">
           No tienes permisos para ver el dashboard. Contacta al administrador.
         </div>
       </div>
@@ -49,11 +50,11 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div>
-        <div className="page-header">
-          <h1 className="page-title">Dashboard</h1>
+      <div className="dashboard-container">
+        <div className="dashboard-page-header">
+          <h1 className="dashboard-title">Dashboard</h1>
         </div>
-        <div className="alert alert-error">
+        <div className="dashboard-alert-error">
           {error}
         </div>
       </div>
@@ -61,10 +62,10 @@ const Dashboard = () => {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <h1 className="page-title">Dashboard - Globos y Fiesta</h1>
-        <small style={{ color: '#7f8c8d' }}>
+    <div className="dashboard-container">
+      <div className="dashboard-page-header">
+        <h1 className="dashboard-title">Dashboard - Globos y Fiesta</h1>
+        <small className="dashboard-date">
           {new Date().toLocaleDateString('es-GT', { 
             weekday: 'long', 
             year: 'numeric', 
@@ -76,70 +77,74 @@ const Dashboard = () => {
 
       {dashboardData && (
         <>
-          {/* Resumen Diario */}
-          <div className="card">
-            <div className="card-header">
-              📊 Resumen del Día - {dashboardData.periodo.hoy}
-            </div>
-            <div className="card-body">
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-number">{dashboardData.resumenDiario.ventasHoy}</div>
-                  <div className="stat-label">Ventas Hoy</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-number">Q{dashboardData.resumenDiario.montoHoy.toFixed(2)}</div>
-                  <div className="stat-label">Ingresos Hoy</div>
-                </div>
-                {isOwner() && dashboardData.resumenDiario.gananciaHoy !== null && (
-                  <div className="stat-card">
-                    <div className="stat-number">Q{dashboardData.resumenDiario.gananciaHoy.toFixed(2)}</div>
-                    <div className="stat-label">Ganancia Hoy</div>
+          {/* Resumen Diario y Mensual - Lado a Lado */}
+          <div className="dashboard-summary-grid">
+            {/* Resumen Diario */}
+            <div className="dashboard-card">
+              <div className="dashboard-card-header">
+                📊 Resumen del Día - {dashboardData.periodo.hoy}
+              </div>
+              <div className="dashboard-card-body">
+                <div className="dashboard-stats-grid">
+                  <div className="dashboard-stat-item">
+                    <div className="dashboard-stat-value">{dashboardData.resumenDiario.ventasHoy}</div>
+                    <div className="dashboard-stat-label">Ventas Hoy</div>
                   </div>
-                )}
+                  <div className="dashboard-stat-item">
+                    <div className="dashboard-stat-value">Q{dashboardData.resumenDiario.montoHoy.toFixed(2)}</div>
+                    <div className="dashboard-stat-label">Ingresos Hoy</div>
+                  </div>
+                  {isOwner() && dashboardData.resumenDiario.gananciaHoy !== null && (
+                    <div className="dashboard-stat-item">
+                      <div className="dashboard-stat-value">Q{dashboardData.resumenDiario.gananciaHoy.toFixed(2)}</div>
+                      <div className="dashboard-stat-label">Ganancia Hoy</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Resumen Mensual */}
+            <div className="dashboard-card">
+              <div className="dashboard-card-header">
+                📅 Resumen del Mes
+              </div>
+              <div className="dashboard-card-body">
+                <div className="dashboard-stats-grid">
+                  <div className="dashboard-stat-item">
+                    <div className="dashboard-stat-value">{dashboardData.resumenMensual.ventasMes}</div>
+                    <div className="dashboard-stat-label">Ventas del Mes</div>
+                  </div>
+                  <div className="dashboard-stat-item">
+                    <div className="dashboard-stat-value">Q{dashboardData.resumenMensual.montoMes.toFixed(2)}</div>
+                    <div className="dashboard-stat-label">Ingresos del Mes</div>
+                  </div>
+                  {isOwner() && dashboardData.resumenMensual.gananciaMes !== null && (
+                    <div className="dashboard-stat-item">
+                      <div className="dashboard-stat-value">Q{dashboardData.resumenMensual.gananciaMes.toFixed(2)}</div>
+                      <div className="dashboard-stat-label">Ganancia del Mes</div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Resumen Mensual */}
-          <div className="card">
-            <div className="card-header">
-              📅 Resumen del Mes
-            </div>
-            <div className="card-body">
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-number">{dashboardData.resumenMensual.ventasMes}</div>
-                  <div className="stat-label">Ventas del Mes</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-number">Q{dashboardData.resumenMensual.montoMes.toFixed(2)}</div>
-                  <div className="stat-label">Ingresos del Mes</div>
-                </div>
-                {isOwner() && dashboardData.resumenMensual.gananciaMes !== null && (
-                  <div className="stat-card">
-                    <div className="stat-number">Q{dashboardData.resumenMensual.gananciaMes.toFixed(2)}</div>
-                    <div className="stat-label">Ganancia del Mes</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          {/* Productos con Stock Bajo y Top Productos */}
+          <div className="dashboard-products-grid">
             {/* Productos con Stock Bajo */}
-            <div className="card">
-              <div className="card-header">
+            <div className="dashboard-card">
+              <div className="dashboard-card-header">
                 ⚠️ Productos con Stock Bajo ({dashboardData.inventario.productosStockBajo})
               </div>
-              <div className="card-body">
+              <div className="dashboard-card-body">
                 {dashboardData.inventario.listaBajo.length === 0 ? (
-                  <p style={{ color: '#27ae60', textAlign: 'center' }}>
+                  <p className="dashboard-success-message">
                     ✅ Todos los productos tienen stock suficiente
                   </p>
                 ) : (
-                  <div className="table-container">
-                    <table className="table">
+                  <div className="dashboard-table-wrapper">
+                    <table className="dashboard-table">
                       <thead>
                         <tr>
                           <th>Producto</th>
@@ -151,7 +156,7 @@ const Dashboard = () => {
                         {dashboardData.inventario.listaBajo.map((producto) => (
                           <tr key={producto._id}>
                             <td>{producto.nombre}</td>
-                            <td style={{ color: '#e74c3c', fontWeight: 'bold' }}>
+                            <td className="dashboard-stock-low">
                               {producto.stock}
                             </td>
                             <td>{producto.stockMinimo}</td>
@@ -165,18 +170,18 @@ const Dashboard = () => {
             </div>
 
             {/* Top Productos */}
-            <div className="card">
-              <div className="card-header">
+            <div className="dashboard-card">
+              <div className="dashboard-card-header">
                 🏆 Productos Más Vendidos (Este Mes)
               </div>
-              <div className="card-body">
+              <div className="dashboard-card-body">
                 {dashboardData.topProductos.length === 0 ? (
-                  <p style={{ textAlign: 'center', color: '#7f8c8d' }}>
+                  <p className="dashboard-empty-message">
                     No hay ventas este mes
                   </p>
                 ) : (
-                  <div className="table-container">
-                    <table className="table">
+                  <div className="dashboard-table-wrapper">
+                    <table className="dashboard-table">
                       <thead>
                         <tr>
                           <th>Producto</th>
@@ -206,18 +211,18 @@ const Dashboard = () => {
           </div>
 
           {/* Clientes Frecuentes */}
-          <div className="card">
-            <div className="card-header">
+          <div className="dashboard-card">
+            <div className="dashboard-card-header">
               💎 Clientes Frecuentes
             </div>
-            <div className="card-body">
+            <div className="dashboard-card-body">
               {dashboardData.clientesFrecuentes.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#7f8c8d' }}>
+                <p className="dashboard-empty-message">
                   No hay clientes frecuentes aún
                 </p>
               ) : (
-                <div className="table-container">
-                  <table className="table">
+                <div className="dashboard-table-wrapper">
+                  <table className="dashboard-table">
                     <thead>
                       <tr>
                         <th>Cliente</th>

@@ -1,11 +1,13 @@
 // frontend/src/components/Navbar.js
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import "./Navbar.css";
 
 const Navbar = () => {
   const { user, logout, hasPermission } = useAuth();
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path;
 
@@ -15,95 +17,124 @@ const Navbar = () => {
     }
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <nav className="navbar">
-      <div className="navbar-brand">
-        <div className="navbar-logo-container">
-          <img
-            src="/LogoGlobosFiesta.jpg"
-            alt="Globos y Fiesta Logo"
-            className="navbar-logo-image"
-            onError={(e) => {
-              e.target.style.display = "none";
-              e.target.nextSibling.style.display = "inline";
-            }}
-          />
-          <span className="navbar-logo-fallback">🎈</span>
-          <div className="navbar-text">
-            <h2>Globos y Fiesta</h2>
-            <p>Sistema de Gestión</p>
+    <>
+      {/* Botón de menú móvil */}
+      <button 
+        className="admin-mobile-menu-toggle" 
+        onClick={toggleMobileMenu}
+        aria-label="Toggle menu"
+      >
+        ☰
+      </button>
+
+      {/* Overlay para cerrar el menú en móvil */}
+      <div 
+        className={`admin-sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
+        onClick={closeMobileMenu}
+      />
+
+      {/* Sidebar */}
+      <nav className={`admin-sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
+        <div className="admin-sidebar-header">
+          <div className="admin-sidebar-logo-wrapper">
+            <img
+              src="/LogoGlobosFiesta.jpg"
+              alt="Globos y Fiesta Logo"
+              className="admin-sidebar-logo"
+              onError={(e) => {
+                e.target.style.display = "none";
+                e.target.nextSibling.style.display = "inline";
+              }}
+            />
+            <span className="admin-sidebar-logo-fallback">🎈</span>
+            <div className="admin-sidebar-brand">
+              <h2>Globos y Fiesta</h2>
+              <p>Sistema de Gestión</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <ul className="navbar-nav">
-        <li className="nav-item">
-          <Link
-            to="/dashboard"
-            className={`nav-link ${isActive("/dashboard") ? "active" : ""}`}
-          >
-            📊 Dashboard
-          </Link>
-        </li>
-
-        {hasPermission("productos") && (
-          <li className="nav-item">
+        <ul className="admin-sidebar-menu">
+          <li className="admin-menu-item">
             <Link
-              to="/productos"
-              className={`nav-link ${isActive("/productos") ? "active" : ""}`}
+              to="/dashboard"
+              className={`admin-menu-link ${isActive("/dashboard") ? "active" : ""}`}
+              onClick={closeMobileMenu}
             >
-              🎈 Productos
+              📊 Dashboard
             </Link>
           </li>
-        )}
 
-        {hasPermission("ventas") && (
-          <li className="nav-item">
-            <Link
-              to="/pedidos"
-              className={`nav-link ${isActive("/pedidos") ? "active" : ""}`}
-            >
-              📦 Pedidos
-            </Link>
-          </li>
-        )}
+          {hasPermission("productos") && (
+            <li className="admin-menu-item">
+              <Link
+                to="/productos"
+                className={`admin-menu-link ${isActive("/productos") ? "active" : ""}`}
+                onClick={closeMobileMenu}
+              >
+                🎈 Productos
+              </Link>
+            </li>
+          )}
 
-        {hasPermission("ventas") && (
-          <li className="nav-item">
-            <Link
-              to="/pos"
-              className={`nav-link ${isActive("/pos") ? "active" : ""}`}
-            >
-              🏪 POS
-            </Link>
-          </li>
-        )}
+          {hasPermission("ventas") && (
+            <li className="admin-menu-item">
+              <Link
+                to="/pedidos"
+                className={`admin-menu-link ${isActive("/pedidos") ? "active" : ""}`}
+                onClick={closeMobileMenu}
+              >
+                📦 Pedidos
+              </Link>
+            </li>
+          )}
 
-        {hasPermission("reportes") && (
-          <li className="nav-item">
-            <Link
-              to="/reportes"
-              className={`nav-link ${isActive("/reportes") ? "active" : ""}`}
-            >
-              📈 Reportes
-            </Link>
-          </li>
-        )}
-      </ul>
+          {hasPermission("ventas") && (
+            <li className="admin-menu-item">
+              <Link
+                to="/pos"
+                className={`admin-menu-link ${isActive("/pos") ? "active" : ""}`}
+                onClick={closeMobileMenu}
+              >
+                🪙 POS
+              </Link>
+            </li>
+          )}
 
-      <div className="user-info">
-        <div>
-          <strong>{user?.nombre}</strong>
-          <br />
-          <small>{user?.rol}</small>
-          <br />
-          <small>{user?.email}</small>
+          {hasPermission("reportes") && (
+            <li className="admin-menu-item">
+              <Link
+                to="/reportes"
+                className={`admin-menu-link ${isActive("/reportes") ? "active" : ""}`}
+                onClick={closeMobileMenu}
+              >
+                📈 Reportes
+              </Link>
+            </li>
+          )}
+        </ul>
+
+        <div className="admin-sidebar-footer">
+          <div className="admin-user-details">
+            <span className="admin-user-name">{user?.nombre}</span>
+            <span className="admin-user-role">{user?.rol}</span>
+            <span className="admin-user-email">{user?.email}</span>
+          </div>
+          <button onClick={handleLogout} className="admin-logout-button">
+            Cerrar Sesión
+          </button>
         </div>
-        <button onClick={handleLogout} className="logout-btn">
-          Cerrar Sesión
-        </button>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 };
 

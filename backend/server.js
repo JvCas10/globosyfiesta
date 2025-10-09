@@ -107,17 +107,54 @@ app.use('/api/ventas', require('./routes/ventas'));
 app.use('/api/reportes', require('./routes/reportes'));
 app.use('/api/pedidos', require('./routes/pedidos'));
 
-// Ruta pública para el catálogo de productos (para clientes)
+// Ruta pública para el catálogo de productos (para clientes) con paginación
 app.get('/api/catalog', async (req, res) => {
     try {
         const Product = require('./models/Product');
-        const productos = await Product.find({ activo: true })
+        
+        // Parámetros de paginación
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12; // 12 productos por página
+        const skip = (page - 1) * limit;
+        
+        // Filtros opcionales
+        const filtros = { activo: true };
+        
+        // Filtro por categoría
+        if (req.query.categoria && req.query.categoria !== 'todos') {
+            filtros.categoria = req.query.categoria;
+        }
+        
+        // Filtro de búsqueda
+        if (req.query.buscar) {
+            const buscar = req.query.buscar.trim();
+            filtros.$or = [
+                { nombre: { $regex: buscar, $options: 'i' } },
+                { descripcion: { $regex: buscar, $options: 'i' } }
+            ];
+        }
+
+        // Consulta con paginación
+        const productos = await Product.find(filtros)
             .select('nombre descripcion categoria precioVenta stock imagenUrl color tamaño tipoGlobo')
-            .sort({ categoria: 1, nombre: 1 });
+            .sort({ categoria: 1, nombre: 1 })
+            .skip(skip)
+            .limit(limit);
+
+        // Contar total de productos para la paginación
+        const total = await Product.countDocuments(filtros);
 
         res.json({
             success: true,
-            productos
+            productos,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(total / limit),
+                totalItems: total,
+                itemsPerPage: limit,
+                hasNextPage: page < Math.ceil(total / limit),
+                hasPrevPage: page > 1
+            }
         });
     } catch (error) {
         console.error('Error en catálogo público:', error);

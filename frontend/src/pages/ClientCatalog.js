@@ -1,4 +1,4 @@
-// ClientCatalog.js - Actualizado con validaciones y límites
+// ClientCatalog.js - Completo con paginación integrada
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
@@ -7,8 +7,10 @@ import EmailVerification from "../components/EmailVerification";
 import PasswordRecovery from "../components/PasswordRecovery";
 import { toast } from "react-toastify";
 import "./ClientCatalog.css";
+import { useNavigate } from 'react-router-dom';
 
 const ClientCatalog = () => {
+  const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
   const [carrito, setCarrito] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,14 +50,44 @@ const ClientCatalog = () => {
   const [mostrarRecuperacion, setMostrarRecuperacion] = useState(false);
   const [emailPendiente, setEmailPendiente] = useState("");
 
+  // NUEVO: Estado de paginación
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 12,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
+// REDIRECCIÓN AUTOMÁTICA PARA ADMIN/EMPLEADO
+useEffect(() => {
+  if (user && (user.rol === 'admin' || user.rol === 'empleado')) {
+    toast.info('Acceso administrativo detectado. Usa el botón naranja para entrar al panel.', {
+      icon: '🧭',
+      autoClose: 2500
+    });
+  }
+ 
+}, [user]);
+  // Cargar productos cuando cambia la página o categoría
   useEffect(() => {
     fetchProductos();
+  }, [categoria, pagination.currentPage]);
+
+  // Resetear a página 1 cuando cambian los filtros
+  useEffect(() => {
+    if (pagination.currentPage !== 1) {
+      setPagination(prev => ({ ...prev, currentPage: 1 }));
+    }
+  }, [categoria]);
+
+  useEffect(() => {
     const carritoKey = user ? `carrito_${user._id}` : "carrito_guest";
     const carritoGuardado = localStorage.getItem(carritoKey);
     if (carritoGuardado) {
       setCarrito(JSON.parse(carritoGuardado));
     }
-  }, [categoria, user]);
+  }, [user]);
 
   useEffect(() => {
     const carritoKey = user ? `carrito_${user._id}` : "carrito_guest";
@@ -83,25 +115,50 @@ const ClientCatalog = () => {
     }
   }, [user]);
 
+  // MODIFICADO: Función fetchProductos con paginación
   const fetchProductos = async () => {
     try {
-      const response = await axios.get("/api/catalog");
-      let productosData = response.data.productos || [];
-
+      setLoading(true);
+      const params = new URLSearchParams();
+      
+      // Agregar parámetros de paginación
+      params.append('page', pagination.currentPage);
+      params.append('limit', pagination.itemsPerPage);
+      
+      // Filtro por categoría
       if (categoria !== "todos") {
-        productosData = productosData.filter(
-          (producto) => producto.categoria === categoria
-        );
+        params.append('categoria', categoria);
+      }
+      
+      // Filtro de búsqueda
+      if (busqueda) {
+        params.append('buscar', busqueda);
       }
 
-      setProductos(productosData);
+      const response = await axios.get(`/api/catalog?${params}`);
+      
+      // Reemplazar productos completamente
+      setProductos(response.data.productos || []);
+      
+      // Actualizar información de paginación
+      if (response.data.pagination) {
+        setPagination(response.data.pagination);
+      }
+      
+      // Scroll al inicio de los productos al cambiar de página
+      window.scrollTo({ top: 300, behavior: 'smooth' });
     } catch (error) {
       console.error("Error al cargar productos:", error);
-      toast.error(
-        "Error al cargar los productos. Por favor, recarga la página."
-      );
+      toast.error("Error al cargar los productos. Por favor, recarga la página.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // NUEVO: Función para cambiar de página
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages && newPage !== pagination.currentPage) {
+      setPagination(prev => ({ ...prev, currentPage: newPage }));
     }
   };
 
@@ -264,12 +321,10 @@ const ClientCatalog = () => {
   };
 
   const productosFiltrados = productos.filter((producto) => {
-    const coincideCategoria =
-      categoria === "todos" || producto.categoria === categoria;
     const coincideBusqueda =
       producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       producto.descripcion?.toLowerCase().includes(busqueda.toLowerCase());
-    return coincideCategoria && coincideBusqueda && producto.stock > 0;
+    return coincideBusqueda && producto.stock > 0;
   });
 
   const getCategoriaIcon = (categoria) => {
@@ -525,8 +580,9 @@ const ClientCatalog = () => {
   if (loading) {
     return (
       <div className="client-container">
-        <div className="loading">
-          <h3>Cargando productos...</h3>
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <p>Cargando productos...</p>
         </div>
       </div>
     );
@@ -535,63 +591,69 @@ const ClientCatalog = () => {
   return (
     <div className="client-container">
       {/* Header */}
-      <header className="client-header">
-        <div className="header-content">
-          <div className="logo-section">
-            <div className="logo-container">
-              <img
-                src="/LogoGlobosFiesta.jpg"
-                alt="Globos y Fiesta Logo"
-                className="logo-image"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.nextSibling.style.display = "inline";
-                }}
-              />
-              <span className="logo-fallback">🎈</span>
-              <div className="logo-text">
-                <h1>Globos&Fiesta</h1>
-                <p>Todo para hacer tu celebración especial</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="header-actions">
-            {user ? (
-              <div className="user-menu">
-                <span>Hola, {user.nombre}!</span>
-                <button onClick={handleLogout} className="btn btn-secondary">
-                  Cerrar Sesión
-                </button>
-              </div>
-            ) : (
-              <div className="auth-buttons">
-                <button
-                  onClick={() => setMostrarLogin(true)}
-                  className="btn btn-outline"
-                >
-                  Iniciar Sesión
-                </button>
-                <button
-                  onClick={() => setMostrarRegistro(true)}
-                  className="btn btn-primary"
-                >
-                  Registrarse
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={() => setMostrarCarrito(true)}
-              className="btn btn-cart"
-            >
-              🛒 Carrito (
-              {carrito.reduce((total, item) => total + item.cantidad, 0)})
-            </button>
-          </div>
+<header className="client-header">
+  <div className="header-content">
+    <div className="logo-section">
+      <div className="logo-container">
+        <img
+          src="/LogoGlobosFiesta.jpg"
+          alt="Globos y Fiesta Logo"
+          className="logo-image"
+          onError={(e) => {
+            e.target.style.display = "none";
+            e.target.nextSibling.style.display = "inline";
+          }}
+        />
+        <span className="logo-fallback">🎈</span>
+        <div className="logo-text">
+          <h1>Globos&Fiesta</h1>
+          <p>Todo para hacer tu celebración especial</p>
         </div>
-      </header>
+      </div>
+    </div>
 
+    <div className="header-actions">
+      {user ? (
+        <div className="user-menu">
+  <span>Hola, {user.nombre}!</span>
+
+  <button onClick={handleLogout} className="btn btn-secondary">
+    Cerrar Sesión
+  </button>
+
+  {(['admin', 'empleado', 'propietario'].includes(user.rol?.toLowerCase())) && (
+    <a href="/dashboard" className="btn-admin-access">
+      🎛️ Panel Admin
+    </a>
+  )}
+</div>
+      ) : (
+        <div className="auth-buttons">
+          <button
+            onClick={() => setMostrarLogin(true)}
+            className="btn btn-outline"
+          >
+            Iniciar Sesión
+          </button>
+          <button
+            onClick={() => setMostrarRegistro(true)}
+            className="btn btn-primary"
+          >
+            Registrarse
+          </button>
+        </div>
+      )}
+
+      <button
+        onClick={() => setMostrarCarrito(true)}
+        className="btn btn-cart"
+      >
+        🛒 Carrito (
+        {carrito.reduce((total, item) => total + item.cantidad, 0)})
+      </button>
+    </div>
+  </div>
+</header>
       {/* Mensajes */}
       {error && (
         <div className="alert alert-error">
@@ -677,6 +739,61 @@ const ClientCatalog = () => {
           ))
         )}
       </div>
+        
+      {/* NUEVA SECCIÓN: Paginación */}
+      {pagination.totalPages > 1 && (
+        <div className="catalog-pagination">
+          {/* Botón Primera Página */}
+          <button
+            className="pagination-btn btn-first"
+            onClick={() => handlePageChange(1)}
+            disabled={pagination.currentPage === 1}
+            title="Primera página"
+          >
+            ⏮ Primera
+          </button>
+
+          {/* Botón Anterior */}
+          <button
+            className="pagination-btn btn-prev"
+            onClick={() => handlePageChange(pagination.currentPage - 1)}
+            disabled={!pagination.hasPrevPage}
+            title="Página anterior"
+          >
+            ◀ Anterior
+          </button>
+
+          {/* Información de página */}
+          <div className="pagination-info">
+            <span className="pagination-current">
+              Página {pagination.currentPage} de {pagination.totalPages}
+            </span>
+            <span className="pagination-total">
+              ({pagination.totalItems} productos en total)
+            </span>
+          </div>
+
+          {/* Botón Siguiente */}
+          <button
+            className="pagination-btn btn-next"
+            onClick={() => handlePageChange(pagination.currentPage + 1)}
+            disabled={!pagination.hasNextPage}
+            title="Página siguiente"
+          >
+            Siguiente ▶
+          </button>
+
+          {/* Botón Última Página */}
+          <button
+            className="pagination-btn btn-last"
+            onClick={() => handlePageChange(pagination.totalPages)}
+            disabled={pagination.currentPage === pagination.totalPages}
+            title="Última página"
+          >
+            Última ⏭
+          </button>
+        </div>
+      )}
 
       {/* Modal de Carrito */}
       {mostrarCarrito && (
@@ -1138,5 +1255,4 @@ const ClientCatalog = () => {
     </div>
   );
 };
-
 export default ClientCatalog;

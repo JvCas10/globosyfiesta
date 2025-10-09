@@ -121,6 +121,16 @@ const Navbar = () => {
               </Link>
             </li>
           )}
+          {/* Botón para volver al catálogo */}
+<li className="admin-menu-item">
+  <Link
+    to="/catalogo"
+    className="admin-menu-link admin-client-view"
+    onClick={closeMobileMenu}
+  >
+    🛍️ Vista Cliente
+  </Link>
+</li>
         </ul>
 
         <div className="admin-sidebar-footer">

@@ -57,7 +57,7 @@ const productSchema = new mongoose.Schema({
     // Campos específicos para globos
     tipoGlobo: {
         type: String,
-        enum: ['latex', 'foil', 'metálico', 'transparente', 'biodegradable', 'otros'],
+        enum: ['latex', 'foil', 'metalico', 'transparente', 'biodegradable', 'otros'],
         required: function() {
             return this.categoria === 'globos';
         }
@@ -66,9 +66,9 @@ const productSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
-    tamaño: {
+    tamano: {
         type: String,
-        enum: ['pequeño', 'mediano', 'grande', 'gigante'],
+        enum: ['pequeno', 'mediano', 'grande', 'gigante'],
         required: function() {
             return this.categoria === 'globos';
         }

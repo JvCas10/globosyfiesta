@@ -454,6 +454,106 @@
   font-size: 15px;
 }
 
+/* ========================================
+   ESTILOS DE PAGINACIÓN PARA PRODUCTOS
+   AGREGAR AL FINAL DE Productos.css
+   ======================================== */
+
+/* Efecto suave al cambiar de página */
+.productos-table-wrapper {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.productos-loading-page {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.productos-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: #f8f9fa;
+  border-top: 2px solid #e9ecef;
+  flex-wrap: wrap;
+}
+
+.productos-pagination-btn {
+  padding: 10px 18px;
+  background: white;
+  border: 2px solid #1e3a5f;
+  color: #1e3a5f;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.productos-pagination-btn:hover:not(:disabled) {
+  background: #1e3a5f;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(30, 58, 95, 0.2);
+}
+
+.productos-pagination-btn:disabled {
+  background: #f1f3f5;
+  border-color: #dee2e6;
+  color: #adb5bd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.productos-pagination-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+}
+
+.productos-pagination-current {
+  font-weight: 700;
+  color: #1e3a5f;
+  font-size: 15px;
+}
+
+.productos-pagination-total {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+/* Responsive para paginación */
+@media (max-width: 768px) {
+  .productos-pagination {
+    gap: 8px;
+    padding: 16px;
+  }
+
+  .productos-pagination-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .productos-pagination-btn:first-child,
+  .productos-pagination-btn:last-child {
+    display: none;
+  }
+
+  .productos-pagination-info {
+    order: -1;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+}
+
 /* Responsive */
 @media (max-width: 1200px) {
   .productos-filters-grid {

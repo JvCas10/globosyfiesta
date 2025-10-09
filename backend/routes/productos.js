@@ -45,13 +45,13 @@ const validacionCrearProducto = [
     // Validaciones específicas para globos
     body('tipoGlobo')
         .if(body('categoria').equals('globos'))
-        .isIn(['latex', 'foil', 'metálico', 'transparente', 'biodegradable', 'otros'])
+        .isIn(['latex', 'foil', 'metalico', 'transparente', 'biodegradable', 'otros'])
         .withMessage('Tipo de globo no válido'),
     
-    body('tamaño')
+    body('tamano')
         .if(body('categoria').equals('globos'))
-        .isIn(['pequeño', 'mediano', 'grande', 'gigante'])
-        .withMessage('Tamaño no válido'),
+        .isIn(['pequeno', 'mediano', 'grande', 'gigante'])
+        .withMessage('Tamano no válido'),
     
     // Validaciones para servicios
     body('tipoServicio')

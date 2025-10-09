@@ -13,6 +13,14 @@ const Pedidos = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [showUpdateStatus, setShowUpdateStatus] = useState(false);
   
+  // Estado de paginación
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 20
+  });
+  
   const { hasPermission } = useAuth();
 
   const [filtros, setFiltros] = useState({
@@ -28,17 +36,21 @@ const Pedidos = () => {
 
   useEffect(() => {
     fetchPedidos();
-  }, [filtros]);
+  }, [filtros, pagination.currentPage]);
 
   const fetchPedidos = async () => {
     try {
+      setLoading(true);
       const params = new URLSearchParams();
       if (filtros.estado !== 'todos') params.append('estado', filtros.estado);
       if (filtros.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
       if (filtros.fechaFin) params.append('fechaFin', filtros.fechaFin);
+      params.append('page', pagination.currentPage);
+      params.append('limit', pagination.itemsPerPage);
       
       const response = await axios.get(`/api/pedidos/admin?${params}`);
       setPedidos(response.data.pedidos);
+      setPagination(response.data.pagination);
     } catch (error) {
       console.error('Error al cargar pedidos:', error);
       toast.error('❌ Error al cargar los pedidos');
@@ -48,28 +60,27 @@ const Pedidos = () => {
     }
   };
 
+  // Reiniciar a página 1 cuando cambian los filtros
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+  }, [filtros]);
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, currentPage: newPage }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleViewDetails = async (pedidoId) => {
-    const toastId = toast.loading('Cargando detalles del pedido...');
-    
+    const toastId = toast.loading('Cargando detalles...');
     try {
       const response = await axios.get(`/api/pedidos/admin/${pedidoId}`);
       setSelectedPedido(response.data.pedido);
       setShowDetails(true);
-      
-      toast.update(toastId, {
-        render: '✅ Detalles cargados',
-        type: 'success',
-        isLoading: false,
-        autoClose: 2000
-      });
+      toast.dismiss(toastId);
     } catch (error) {
-      console.error('Error al cargar detalles del pedido:', error);
-      toast.update(toastId, {
-        render: '❌ Error al cargar los detalles',
-        type: 'error',
-        isLoading: false,
-        autoClose: 3000
-      });
+      console.error('Error al cargar detalles:', error);
+      toast.error('❌ Error al cargar los detalles del pedido');
+      toast.dismiss(toastId);
     }
   };
 
@@ -82,99 +93,60 @@ const Pedidos = () => {
     setShowUpdateStatus(true);
   };
 
-  const submitStatusUpdate = async (e) => {
-    e.preventDefault();
-    
-    const toastId = toast.loading('Actualizando estado del pedido...');
-    
+  const submitUpdateStatus = async () => {
+    if (!updateData.estado) {
+      toast.error('❌ Debes seleccionar un estado');
+      return;
+    }
+
+    const toastId = toast.loading('Actualizando estado...');
     try {
       await axios.put(`/api/pedidos/admin/${selectedPedido._id}/estado`, updateData);
-      
-      toast.update(toastId, {
-        render: '✅ Estado actualizado exitosamente',
-        type: 'success',
-        isLoading: false,
-        autoClose: 3000
-      });
-      
-      setShowUpdateStatus(false);
-      setSelectedPedido(null);
+      toast.success('✅ Estado actualizado correctamente');
+      toast.dismiss(toastId);
       fetchPedidos();
+      resetUpdateModal();
     } catch (error) {
       console.error('Error al actualizar estado:', error);
-      const errorMessage = error.response?.data?.message || 'Error al actualizar el estado';
-      
-      toast.update(toastId, {
-        render: `❌ ${errorMessage}`,
-        type: 'error',
-        isLoading: false,
-        autoClose: 4000
-      });
+      toast.error('❌ Error al actualizar el estado');
+      toast.dismiss(toastId);
     }
-  };
-
-  const resetDetailsModal = () => {
-    setShowDetails(false);
-    setSelectedPedido(null);
   };
 
   const resetUpdateModal = () => {
     setShowUpdateStatus(false);
     setSelectedPedido(null);
-    setUpdateData({
-      estado: '',
-      notasAdmin: ''
-    });
+    setUpdateData({ estado: '', notasAdmin: '' });
   };
 
-  const getEstadoInfo = (estado) => {
-    const estadosInfo = {
-      'en-proceso': {
-        icon: '⏳',
-        texto: 'En Proceso',
-        bgColor: '#fff3cd',
-        textColor: '#856404'
-      },
-      'cancelado': {
-        icon: '❌',
-        texto: 'Cancelado',
-        bgColor: '#f8d7da',
-        textColor: '#721c24'
-      },
-      'listo-entrega': {
-        icon: '✅',
-        texto: 'Listo para Entrega',
-        bgColor: '#d4edda',
-        textColor: '#155724'
-      },
-      'entregado': {
-        icon: '📦',
-        texto: 'Entregado',
-        bgColor: '#e2e3e5',
-        textColor: '#383d41'
-      }
+  const getEstadoClase = (estado) => {
+    const clases = {
+      'en-proceso': 'pedidos-status-proceso',
+      'listo-entrega': 'pedidos-status-listo',
+      'entregado': 'pedidos-status-entregado',
+      'cancelado': 'pedidos-status-cancelado'
     };
-    return estadosInfo[estado] || estadosInfo['en-proceso'];
+    return `pedidos-status-badge ${clases[estado] || ''}`;
   };
 
-  const formatearFecha = (fecha) => {
-    return new Date(fecha).toLocaleDateString('es-GT', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const getEstadoTexto = (estado) => {
+    const textos = {
+      'en-proceso': '⏳ En Proceso',
+      'listo-entrega': '📦 Listo para Entrega',
+      'entregado': '✅ Entregado',
+      'cancelado': '❌ Cancelado'
+    };
+    return textos[estado] || estado;
   };
 
-  const getTiempoTranscurrido = (fecha) => {
+  const calcularTiempoTranscurrido = (fecha) => {
     const ahora = new Date();
     const fechaPedido = new Date(fecha);
     const diferencia = ahora - fechaPedido;
     
-    const minutos = Math.floor(diferencia / (1000 * 60));
-    const horas = Math.floor(diferencia / (1000 * 60 * 60));
     const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
+    const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
     
     if (dias > 0) return `Hace ${dias} día${dias > 1 ? 's' : ''}`;
     if (horas > 0) return `Hace ${horas} hora${horas > 1 ? 's' : ''}`;
@@ -200,7 +172,7 @@ const Pedidos = () => {
       <div className="pedidos-page-header">
         <h1 className="pedidos-title">📦 Gestión de Pedidos</h1>
         <div className="pedidos-header-stats">
-          Total: {pedidos.length}
+          Total: {pagination.totalItems} pedidos
         </div>
       </div>
 
@@ -254,7 +226,7 @@ const Pedidos = () => {
       {/* Lista de pedidos */}
       <div className="pedidos-card">
         <div className="pedidos-card-header">
-          📋 Lista de Pedidos ({pedidos.length})
+          📋 Lista de Pedidos (Página {pagination.currentPage} de {pagination.totalPages})
         </div>
         <div className="pedidos-card-body">
           {loading ? (
@@ -262,219 +234,227 @@ const Pedidos = () => {
           ) : pedidos.length === 0 ? (
             <p className="pedidos-empty">No hay pedidos para mostrar</p>
           ) : (
-            <div className="pedidos-table-wrapper">
-              <table className="pedidos-table">
-                <thead>
-                  <tr>
-                    <th>Pedido</th>
-                    <th>Cliente</th>
-                    <th>Fecha</th>
-                    <th>Total</th>
-                    <th>Estado</th>
-                    <th>Tiempo</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pedidos.map((pedido) => (
-                    <tr key={pedido._id}>
-                      <td>
-                        <div className="pedidos-order-info">
-                          <div className="pedidos-order-number">{pedido.numero}</div>
-                          <div className="pedidos-order-code">
-                            Código: {pedido.codigoSeguimiento}
-                          </div>
-                          <div className="pedidos-order-items">
-                            {pedido.items.length} producto{pedido.items.length > 1 ? 's' : ''}
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="pedidos-client-info">
-                          <div className="pedidos-client-name">{pedido.cliente.nombre}</div>
-                          <div className="pedidos-client-detail">
-                            📞 {pedido.cliente.telefono}
-                          </div>
-                          {pedido.cliente.email && (
-                            <div className="pedidos-client-detail">
-                              ✉️ {pedido.cliente.email}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="pedidos-date">
-                          {formatearFecha(pedido.fechaPedido)}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="pedidos-total">
-                          Q{pedido.total.toFixed(2)}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="pedidos-status-badge" style={{
-                          backgroundColor: getEstadoInfo(pedido.estado).bgColor,
-                          color: getEstadoInfo(pedido.estado).textColor
-                        }}>
-                          {getEstadoInfo(pedido.estado).icon} {getEstadoInfo(pedido.estado).texto}
-                        </span>
-                        {pedido.estado !== 'entregado' && pedido.estado !== 'cancelado' && (
-                          <div className="pedidos-status-time">
-                            {getTiempoTranscurrido(pedido.fechaPedido)}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <div className="pedidos-elapsed-time">
-                          {getTiempoTranscurrido(pedido.fechaEstadoActual)}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="pedidos-actions">
-                          <button
-                            className="pedidos-btn-view"
-                            onClick={() => handleViewDetails(pedido._id)}
-                          >
-                            👁️ Ver
-                          </button>
-                          <button
-                            className="pedidos-btn-status"
-                            onClick={() => handleUpdateStatus(pedido)}
-                          >
-                            ✏️ Estado
-                          </button>
-                        </div>
-                      </td>
+            <>
+              <div className="pedidos-table-wrapper">
+                <table className="pedidos-table">
+                  <thead>
+                    <tr>
+                      <th>Pedido</th>
+                      <th>Cliente</th>
+                      <th>Fecha</th>
+                      <th>Total</th>
+                      <th>Estado</th>
+                      <th>Tiempo</th>
+                      <th>Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {pedidos.map((pedido) => (
+                      <tr key={pedido._id}>
+                        <td>
+                          <div className="pedidos-order-info">
+                            <div className="pedidos-order-number">{pedido.numero}</div>
+                            <div className="pedidos-order-code">
+                              Código: {pedido.codigoSeguimiento}
+                            </div>
+                            <div className="pedidos-order-items">
+                              {pedido.items.length} producto{pedido.items.length > 1 ? 's' : ''}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="pedidos-client-info">
+                            <div className="pedidos-client-name">{pedido.cliente.nombre}</div>
+                            <div className="pedidos-client-detail">📞 {pedido.cliente.telefono}</div>
+                            {pedido.cliente.direccion && (
+                              <div className="pedidos-client-detail">📍 {pedido.cliente.direccion}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="pedidos-date">
+                          {new Date(pedido.fechaPedido).toLocaleDateString('es-GT', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </td>
+                        <td className="pedidos-total">Q{pedido.total.toFixed(2)}</td>
+                        <td>
+                          <div className={getEstadoClase(pedido.estado)}>
+                            {getEstadoTexto(pedido.estado)}
+                          </div>
+                        </td>
+                        <td className="pedidos-elapsed-time">
+                          {calcularTiempoTranscurrido(pedido.fechaPedido)}
+                        </td>
+                        <td>
+                          <div className="pedidos-actions">
+                            <button
+                              className="pedidos-btn pedidos-btn-view"
+                              onClick={() => handleViewDetails(pedido._id)}
+                              title="Ver detalles"
+                            >
+                              👁️
+                            </button>
+                            <button
+                              className="pedidos-btn pedidos-btn-edit"
+                              onClick={() => handleUpdateStatus(pedido)}
+                              title="Actualizar estado"
+                            >
+                              ✏️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Controles de paginación */}
+              {pagination.totalPages > 1 && (
+                <div className="pedidos-pagination">
+                  <button
+                    className="pedidos-pagination-btn"
+                    onClick={() => handlePageChange(1)}
+                    disabled={pagination.currentPage === 1}
+                  >
+                    ⏮️ Primera
+                  </button>
+                  
+                  <button
+                    className="pedidos-pagination-btn"
+                    onClick={() => handlePageChange(pagination.currentPage - 1)}
+                    disabled={!pagination.hasPrevPage}
+                  >
+                    ◀️ Anterior
+                  </button>
+
+                  <div className="pedidos-pagination-info">
+                    <span className="pedidos-pagination-current">
+                      Página {pagination.currentPage} de {pagination.totalPages}
+                    </span>
+                    <span className="pedidos-pagination-total">
+                      ({pagination.totalItems} pedidos en total)
+                    </span>
+                  </div>
+
+                  <button
+                    className="pedidos-pagination-btn"
+                    onClick={() => handlePageChange(pagination.currentPage + 1)}
+                    disabled={!pagination.hasNextPage}
+                  >
+                    Siguiente ▶️
+                  </button>
+
+                  <button
+                    className="pedidos-pagination-btn"
+                    onClick={() => handlePageChange(pagination.totalPages)}
+                    disabled={pagination.currentPage === pagination.totalPages}
+                  >
+                    Última ⏭️
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
       {/* Modal de detalles */}
       {showDetails && selectedPedido && (
-        <div className="pedidos-modal-overlay" onClick={resetDetailsModal}>
+        <div className="pedidos-modal-overlay" onClick={() => setShowDetails(false)}>
           <div className="pedidos-modal" onClick={(e) => e.stopPropagation()}>
             <div className="pedidos-modal-header">
-              Detalle del Pedido {selectedPedido.numero}
-              <button className="pedidos-modal-close" onClick={resetDetailsModal}>×</button>
+              <span>Detalles del Pedido #{selectedPedido.numero}</span>
+              <button className="pedidos-modal-close" onClick={() => setShowDetails(false)}>×</button>
             </div>
 
             <div className="pedidos-modal-body">
-              <div className="pedidos-info-grid">
-                {/* Información del pedido */}
-                <div className="pedidos-info-section">
-                  <h4 className="pedidos-section-title">📋 Información del Pedido</h4>
-                  <div className="pedidos-info-item">
-                    <span className="pedidos-info-label">Número:</span>
-                    <span className="pedidos-info-value">{selectedPedido.numero}</span>
+              {/* Información general */}
+              <div className="pedidos-detail-section">
+                <h4 className="pedidos-section-title">📋 Información General</h4>
+                <div className="pedidos-detail-grid">
+                  <div className="pedidos-detail-item">
+                    <span className="pedidos-detail-label">Número de Pedido:</span>
+                    <span className="pedidos-detail-value">{selectedPedido.numero}</span>
                   </div>
-                  <div className="pedidos-info-item">
-                    <span className="pedidos-info-label">Código de Seguimiento:</span>
-                    <span className="pedidos-info-value">{selectedPedido.codigoSeguimiento}</span>
-                  </div>
-                  <div className="pedidos-info-item">
-                    <span className="pedidos-info-label">Fecha:</span>
-                    <span className="pedidos-info-value">{formatearFecha(selectedPedido.fechaPedido)}</span>
-                  </div>
-                  <div className="pedidos-info-item">
-                    <span className="pedidos-info-label">Total:</span>
-                    <span className="pedidos-info-value pedidos-total-highlight">Q{selectedPedido.total.toFixed(2)}</span>
-                  </div>
-                  <div className="pedidos-info-item">
-                    <span className="pedidos-info-label">Estado:</span>
-                    <span className="pedidos-status-badge" style={{
-                      backgroundColor: getEstadoInfo(selectedPedido.estado).bgColor,
-                      color: getEstadoInfo(selectedPedido.estado).textColor,
-                      marginLeft: '8px'
-                    }}>
-                      {getEstadoInfo(selectedPedido.estado).icon} {getEstadoInfo(selectedPedido.estado).texto}
+                  <div className="pedidos-detail-item">
+                    <span className="pedidos-detail-label">Código de Seguimiento:</span>
+                    <span className="pedidos-detail-value pedidos-tracking-code">
+                      {selectedPedido.codigoSeguimiento}
                     </span>
                   </div>
-                  {selectedPedido.fechaEstadoActual !== selectedPedido.fechaPedido && (
-                    <div className="pedidos-info-item">
-                      <span className="pedidos-info-label">Última actualización:</span>
-                      <span className="pedidos-info-value">{formatearFecha(selectedPedido.fechaEstadoActual)}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Información del cliente */}
-                <div className="pedidos-info-section">
-                  <h4 className="pedidos-section-title">👤 Información del Cliente</h4>
-                  <div className="pedidos-info-item">
-                    <span className="pedidos-info-label">Nombre:</span>
-                    <span className="pedidos-info-value">{selectedPedido.cliente.nombre}</span>
+                  <div className="pedidos-detail-item">
+                    <span className="pedidos-detail-label">Estado:</span>
+                    <span className={getEstadoClase(selectedPedido.estado)}>
+                      {getEstadoTexto(selectedPedido.estado)}
+                    </span>
                   </div>
-                  <div className="pedidos-info-item">
-                    <span className="pedidos-info-label">Teléfono:</span>
-                    <span className="pedidos-info-value">{selectedPedido.cliente.telefono}</span>
+                  <div className="pedidos-detail-item">
+                    <span className="pedidos-detail-label">Fecha del Pedido:</span>
+                    <span className="pedidos-detail-value">
+                      {new Date(selectedPedido.fechaPedido).toLocaleString('es-GT')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Información del cliente */}
+              <div className="pedidos-detail-section">
+                <h4 className="pedidos-section-title">👤 Cliente</h4>
+                <div className="pedidos-detail-grid">
+                  <div className="pedidos-detail-item">
+                    <span className="pedidos-detail-label">Nombre:</span>
+                    <span className="pedidos-detail-value">{selectedPedido.cliente.nombre}</span>
+                  </div>
+                  <div className="pedidos-detail-item">
+                    <span className="pedidos-detail-label">Teléfono:</span>
+                    <span className="pedidos-detail-value">{selectedPedido.cliente.telefono}</span>
                   </div>
                   {selectedPedido.cliente.email && (
-                    <div className="pedidos-info-item">
-                      <span className="pedidos-info-label">Email:</span>
-                      <span className="pedidos-info-value">{selectedPedido.cliente.email}</span>
+                    <div className="pedidos-detail-item">
+                      <span className="pedidos-detail-label">Email:</span>
+                      <span className="pedidos-detail-value">{selectedPedido.cliente.email}</span>
+                    </div>
+                  )}
+                  {selectedPedido.cliente.direccion && (
+                    <div className="pedidos-detail-item pedidos-detail-full">
+                      <span className="pedidos-detail-label">Dirección:</span>
+                      <span className="pedidos-detail-value">{selectedPedido.cliente.direccion}</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Items del pedido */}
-              <div className="pedidos-products-section">
-                <h4 className="pedidos-section-title">🛒 Productos del Pedido</h4>
-                <div className="pedidos-table-wrapper">
-                  <table className="pedidos-table">
-                    <thead>
-                      <tr>
-                        <th>Producto</th>
-                        <th>Cantidad</th>
-                        <th>Precio Unit.</th>
-                        <th>Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedPedido.items.map((item, index) => (
-                        <tr key={index}>
-                          <td>
-                            <div className="pedidos-product-item">
-                              {item.imagenUrl && (
-                                <img
-                                  src={item.imagenUrl}
-                                  alt={item.nombre}
-                                  className="pedidos-product-image"
-                                />
-                              )}
-                              <div className="pedidos-product-details">
-                                <div className="pedidos-product-name">{item.nombre}</div>
-                                {item.producto?.categoria && (
-                                  <div className="pedidos-product-category">
-                                    {item.producto.categoria}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td>{item.cantidad}</td>
-                          <td>Q{item.precioUnitario.toFixed(2)}</td>
-                          <td><strong>Q{item.subtotal.toFixed(2)}</strong></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Productos */}
+              <div className="pedidos-detail-section">
+                <h4 className="pedidos-section-title">🎈 Productos</h4>
+                <div className="pedidos-items-list">
+                  {selectedPedido.items.map((item, index) => (
+                    <div key={index} className="pedidos-item">
+                      <div className="pedidos-item-info">
+                        <span className="pedidos-item-name">{item.producto?.nombre || 'Producto no disponible'}</span>
+                        <span className="pedidos-item-quantity">Cantidad: {item.cantidad}</span>
+                      </div>
+                      <div className="pedidos-item-prices">
+                        <span className="pedidos-item-price">Q{item.precioUnitario.toFixed(2)} c/u</span>
+                        <span className="pedidos-item-subtotal">Subtotal: Q{item.subtotal.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="pedidos-total-section">
-                  <div className="pedidos-total-label">Total del Pedido:</div>
-                  <div className="pedidos-total-amount">Q{selectedPedido.total.toFixed(2)}</div>
+                  <span className="pedidos-total-label">Total del Pedido:</span>
+                  <span className="pedidos-total-amount">Q{selectedPedido.total.toFixed(2)}</span>
                 </div>
               </div>
 
               {/* Notas */}
               {(selectedPedido.notasCliente || selectedPedido.notasAdmin) && (
-                <div className="pedidos-notes-section">
+                <div className="pedidos-detail-section">
                   <h4 className="pedidos-section-title">📝 Notas</h4>
                   {selectedPedido.notasCliente && (
                     <div className="pedidos-note-box pedidos-note-client">
@@ -520,27 +500,24 @@ const Pedidos = () => {
                 </div>
                 <div className="pedidos-update-info-row">
                   <span className="pedidos-update-label">Estado actual:</span>
-                  <span className="pedidos-status-badge" style={{
-                    backgroundColor: getEstadoInfo(selectedPedido.estado).bgColor,
-                    color: getEstadoInfo(selectedPedido.estado).textColor
-                  }}>
-                    {getEstadoInfo(selectedPedido.estado).icon} {getEstadoInfo(selectedPedido.estado).texto}
+                  <span className={getEstadoClase(selectedPedido.estado)}>
+                    {getEstadoTexto(selectedPedido.estado)}
                   </span>
                 </div>
               </div>
 
-              <form onSubmit={submitStatusUpdate}>
+              <div className="pedidos-update-form">
                 <div className="pedidos-form-field">
                   <label className="pedidos-form-label">Nuevo Estado *</label>
                   <select
                     className="pedidos-form-select"
                     value={updateData.estado}
                     onChange={(e) => setUpdateData(prev => ({ ...prev, estado: e.target.value }))}
-                    required
                   >
+                    <option value="">Seleccionar estado</option>
                     <option value="en-proceso">⏳ En Proceso</option>
-                    <option value="listo-entrega">✅ Listo para Entrega</option>
-                    <option value="entregado">📦 Entregado</option>
+                    <option value="listo-entrega">📦 Listo para Entrega</option>
+                    <option value="entregado">✅ Entregado</option>
                     <option value="cancelado">❌ Cancelado</option>
                   </select>
                 </div>
@@ -551,23 +528,26 @@ const Pedidos = () => {
                     className="pedidos-form-textarea"
                     value={updateData.notasAdmin}
                     onChange={(e) => setUpdateData(prev => ({ ...prev, notasAdmin: e.target.value }))}
-                    placeholder="Agregar notas internas sobre el estado del pedido..."
+                    placeholder="Notas internas sobre el pedido..."
+                    rows="4"
                   />
                 </div>
+              </div>
 
-                <div className="pedidos-form-actions">
-                  <button 
-                    type="button" 
-                    className="pedidos-btn-cancel" 
-                    onClick={resetUpdateModal}
-                  >
-                    Cancelar
-                  </button>
-                  <button type="submit" className="pedidos-btn-submit">
-                    Actualizar Estado
-                  </button>
-                </div>
-              </form>
+              <div className="pedidos-modal-actions">
+                <button
+                  className="pedidos-btn pedidos-btn-cancel"
+                  onClick={resetUpdateModal}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="pedidos-btn pedidos-btn-primary"
+                  onClick={submitUpdateStatus}
+                >
+                  Actualizar Estado
+                </button>
+              </div>
             </div>
           </div>
         </div>

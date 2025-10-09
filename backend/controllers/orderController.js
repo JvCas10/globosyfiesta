@@ -82,7 +82,7 @@ exports.crearPedido = async (req, res) => {
         if (req.user && req.user.rol === 'cliente') {
             usuarioId = req.user._id;
         }
-        
+
         // Crear el pedido
         const nuevoPedido = new Order({
             cliente: {
@@ -149,6 +149,9 @@ exports.crearPedido = async (req, res) => {
 };
 
 // Obtener pedidos (para administradores)
+// backend/controllers/orderController.js
+
+// Obtener pedidos (para administradores) con paginación
 exports.obtenerPedidos = async (req, res) => {
     try {
         const {
@@ -156,7 +159,7 @@ exports.obtenerPedidos = async (req, res) => {
             fechaInicio,
             fechaFin,
             page = 1,
-            limit = 20
+            limit = 20  // Mantener 20 por página para mejor rendimiento
         } = req.query;
 
         // Construir filtros
@@ -195,7 +198,9 @@ exports.obtenerPedidos = async (req, res) => {
                 currentPage: Number(page),
                 totalPages: Math.ceil(total / limit),
                 totalItems: total,
-                itemsPerPage: Number(limit)
+                itemsPerPage: Number(limit),
+                hasNextPage: page < Math.ceil(total / limit),
+                hasPrevPage: page > 1
             }
         });
 

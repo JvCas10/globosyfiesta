@@ -20,22 +20,46 @@ const POS = () => {
   
   const { hasPermission } = useAuth();
 
+  // Estado de paginación
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 20
+  });
+
+  // useEffect para cargar productos cuando cambian filtros o página
   useEffect(() => {
     fetchProductos();
-  }, [categoriaFiltro]);
+  }, [categoriaFiltro, pagination.currentPage]);
+
+  // Reiniciar a página 1 cuando cambian los filtros
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+  }, [categoriaFiltro, busquedaProducto]);
 
   const fetchProductos = async () => {
     try {
       const params = new URLSearchParams();
       params.append('activo', 'true');
       if (categoriaFiltro !== 'todos') params.append('categoria', categoriaFiltro);
+      if (busquedaProducto) params.append('buscar', busquedaProducto);
+      params.append('page', pagination.currentPage);
+      params.append('limit', pagination.itemsPerPage);
       
       const response = await axios.get(`/api/productos?${params}`);
       setProductos(response.data.productos || []);
+      if (response.data.pagination) {
+        setPagination(response.data.pagination);
+      }
     } catch (error) {
       console.error('Error al cargar productos:', error);
       toast.error('❌ Error al cargar los productos');
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, currentPage: newPage }));
   };
 
   const agregarProducto = (producto) => {
@@ -63,7 +87,6 @@ const POS = () => {
         cantidad: 1,
         subtotal: producto.precioVenta
       }]);
-      //toast.success(`🛒 ${producto.nombre} agregado al carrito`);
     }
   };
 
@@ -93,9 +116,6 @@ const POS = () => {
   const eliminarDelCarrito = (id) => {
     const item = carrito.find(item => item._id === id);
     setCarrito(prev => prev.filter(item => item._id !== id));
-    if (item) {
-      //toast.info(`🗑️ ${item.nombre} eliminado del carrito`);
-    }
   };
 
   const limpiarCarrito = () => {
@@ -119,7 +139,6 @@ const POS = () => {
   };
 
   const procesarVenta = async () => {
-    // Validaciones con toasts
     if (carrito.length === 0) {
       toast.warning('⚠️ El carrito está vacío');
       return;
@@ -390,10 +409,9 @@ const POS = () => {
             >
               <option value="todos">📦 Todas</option>
               <option value="globos">🎈 Globos</option>
-              <option value="decoraciones">🎊 Decoraciones</option>
-              <option value="articulos-fiesta">🎉 Artículos</option>
+              <option value="decoracion">🎊 Decoración</option>
+              <option value="accesorios">🎉 Accesorios</option>
               <option value="servicios">🛠️ Servicios</option>
-              <option value="otros">📋 Otros</option>
             </select>
           </div>
 
@@ -407,7 +425,15 @@ const POS = () => {
               >
                 {producto.imagenUrl && (
                   <div className="pos-product-image-container">
-                    <img src={producto.imagenUrl} alt={producto.nombre} className="pos-product-image" />
+                    <img 
+                      src={producto.imagenUrl} 
+                      alt={producto.nombre} 
+                      className="pos-product-image"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60"%3E%3Crect width="60" height="60" fill="%23f0f0f0"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="24" fill="%23999"%3E📦%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
                   </div>
                 )}
                 <div className="pos-product-details">
@@ -427,6 +453,49 @@ const POS = () => {
               </div>
             ))}
           </div>
+
+          {/* Controles de paginación */}
+          {pagination.totalPages > 1 && (
+            <div className="pos-pagination">
+              <button
+                className="pos-pagination-btn"
+                onClick={() => handlePageChange(1)}
+                disabled={pagination.currentPage === 1}
+              >
+                ⏮️
+              </button>
+              
+              <button
+                className="pos-pagination-btn"
+                onClick={() => handlePageChange(pagination.currentPage - 1)}
+                disabled={!pagination.hasPrevPage}
+              >
+                ◀️
+              </button>
+
+              <div className="pos-pagination-info">
+                <span className="pos-pagination-text">
+                  Página {pagination.currentPage} de {pagination.totalPages}
+                </span>
+              </div>
+
+              <button
+                className="pos-pagination-btn"
+                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                disabled={!pagination.hasNextPage}
+              >
+                ▶️
+              </button>
+
+              <button
+                className="pos-pagination-btn"
+                onClick={() => handlePageChange(pagination.totalPages)}
+                disabled={pagination.currentPage === pagination.totalPages}
+              >
+                ⏭️
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Panel de carrito */}

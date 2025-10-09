@@ -22,7 +22,7 @@ exports.crearProducto = async (req, res) => {
             stockMinimo,
             tipoGlobo,
             color,
-            tamaño,
+            tamano,
             tipoServicio
         } = req.body;
 
@@ -78,7 +78,7 @@ exports.crearProducto = async (req, res) => {
             // Campos específicos para globos
             tipoGlobo: categoria === 'globos' ? tipoGlobo : undefined,
             color: color?.trim(),
-            tamaño: categoria === 'globos' ? tamaño : undefined,
+            tamano: categoria === 'globos' ? tamano : undefined,
             // Campo para servicios
             tipoServicio: categoria === 'servicios' ? tipoServicio : undefined
         });
@@ -118,29 +118,31 @@ exports.crearProducto = async (req, res) => {
 };
 
 // Obtener todos los productos
+// backend/controllers/productController.js
+
+// Obtener productos con filtros y paginación
 exports.obtenerProductos = async (req, res) => {
     try {
-        const { 
-            categoria, 
-            activo = 'true', 
-            stockBajo = 'false',
+        const {
+            categoria = 'todos',
+            activo,
             buscar,
+            stockBajo,
             page = 1,
-            limit = 20
+            limit = 20  // 20 productos por página
         } = req.query;
 
         // Construir filtros
         const filtros = {};
-        
+
         if (categoria && categoria !== 'todos') {
             filtros.categoria = categoria;
         }
-        
-        if (activo !== 'todos') {
+
+        if (activo !== undefined) {
             filtros.activo = activo === 'true';
         }
 
-        // Filtro de búsqueda por texto
         if (buscar) {
             filtros.$or = [
                 { nombre: { $regex: buscar, $options: 'i' } },
@@ -170,7 +172,9 @@ exports.obtenerProductos = async (req, res) => {
                 currentPage: Number(page),
                 totalPages: Math.ceil(total / limit),
                 totalItems: total,
-                itemsPerPage: Number(limit)
+                itemsPerPage: Number(limit),
+                hasNextPage: page < Math.ceil(total / limit),
+                hasPrevPage: page > 1
             }
         });
 
@@ -221,7 +225,7 @@ exports.actualizarProducto = async (req, res) => {
             stockMinimo,
             tipoGlobo,
             color,
-            tamaño,
+            tamano,
             tipoServicio,
             activo
         } = req.body;
@@ -273,9 +277,9 @@ exports.actualizarProducto = async (req, res) => {
                 imagenPublicId,
                 tipoGlobo: categoria === 'globos' ? tipoGlobo : undefined,
                 color: color?.trim(),
-                tamaño: categoria === 'globos' ? tamaño : undefined,
+                tamano: categoria === 'globos' ? tamano : undefined,
                 tipoServicio: categoria === 'servicios' ? tipoServicio : undefined,
-                activo: activo !== undefined ? activo === 'true' : undefined
+                activo: activo !== undefined ? activo : undefined
             },
             { new: true, runValidators: true }
         );
@@ -289,7 +293,7 @@ exports.actualizarProducto = async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error al actualizar producto:', error);
-        
+
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
@@ -307,6 +311,7 @@ exports.eliminarProducto = async (req, res) => {
         const { id } = req.params;
 
         const producto = await Product.findById(id);
+
         if (!producto) {
             return res.status(404).json({
                 error: 'Producto no encontrado'
@@ -317,13 +322,12 @@ exports.eliminarProducto = async (req, res) => {
         if (producto.imagenPublicId) {
             try {
                 await deleteFromCloudinary(producto.imagenPublicId);
-                console.log('✅ Imagen eliminada de Cloudinary');
-            } catch (deleteError) {
-                console.error('❌ Error al eliminar imagen:', deleteError);
+                console.log('🗑️ Imagen eliminada de Cloudinary');
+            } catch (error) {
+                console.error('❌ Error al eliminar imagen:', error);
             }
         }
 
-        // Eliminar producto de la base de datos
         await Product.findByIdAndDelete(id);
 
         console.log('✅ Producto eliminado:', producto.nombre);
@@ -346,7 +350,7 @@ exports.buscarProductos = async (req, res) => {
     try {
         const { q } = req.query;
 
-        if (!q) {
+        if (!q || q.trim().length === 0) {
             return res.status(400).json({
                 error: 'Parámetro de búsqueda requerido'
             });

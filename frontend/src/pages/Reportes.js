@@ -2,6 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { 
+  generarPDFDashboard, 
+  generarPDFVentas, 
+  generarPDFInventario, 
+  generarPDFClientes 
+} from '../utils/pdfGenerator.js';
 import './Reportes.css';
 
 const Reportes = () => {
@@ -111,6 +117,31 @@ const Reportes = () => {
     }
   };
 
+  // Handlers para descargar PDFs
+  const handleDescargarDashboard = () => {
+    if (dashboardData) {
+      generarPDFDashboard(dashboardData, isOwner());
+    }
+  };
+
+  const handleDescargarVentas = () => {
+    if (reporteVentas) {
+      generarPDFVentas(reporteVentas, isOwner());
+    }
+  };
+
+  const handleDescargarInventario = () => {
+    if (reporteInventario) {
+      generarPDFInventario(reporteInventario, isOwner());
+    }
+  };
+
+  const handleDescargarClientes = () => {
+    if (reporteClientes) {
+      generarPDFClientes(reporteClientes);
+    }
+  };
+
   if (!hasPermission('reportes')) {
     return (
       <div className="reportes-container">
@@ -128,6 +159,27 @@ const Reportes = () => {
     <div className="reportes-container">
       <div className="reportes-page-header">
         <h1 className="reportes-title">📈 Reportes y Estadísticas</h1>
+        {/* Botón de descarga según la pestaña activa */}
+        {activeTab === 'dashboard' && dashboardData && (
+          <button className="reportes-btn-download" onClick={handleDescargarDashboard}>
+            📥 Descargar Dashboard PDF
+          </button>
+        )}
+        {activeTab === 'ventas' && reporteVentas && (
+          <button className="reportes-btn-download" onClick={handleDescargarVentas}>
+            📥 Descargar Ventas PDF
+          </button>
+        )}
+        {activeTab === 'inventario' && reporteInventario && (
+          <button className="reportes-btn-download" onClick={handleDescargarInventario}>
+            📥 Descargar Inventario PDF
+          </button>
+        )}
+        {activeTab === 'clientes' && reporteClientes && (
+          <button className="reportes-btn-download" onClick={handleDescargarClientes}>
+            📥 Descargar Clientes PDF
+          </button>
+        )}
       </div>
 
       {error && (

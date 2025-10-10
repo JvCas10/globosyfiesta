@@ -111,7 +111,7 @@ const plantillaRecuperacion = (codigo, nombre) => `
 const enviarEmailVerificacion = async (email, nombre, codigo) => {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Globos y Fiesta <onboarding@resend.dev>',
+            from: 'Globos y Fiesta <noreply@globosyfiesta.store>',
             to: email,
             subject: '🎈 Verifica tu email - Globos y Fiesta',
             html: plantillaVerificacion(codigo, nombre)
@@ -134,7 +134,7 @@ const enviarEmailVerificacion = async (email, nombre, codigo) => {
 const enviarEmailRecuperacion = async (email, nombre, codigo) => {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Globos y Fiesta <onboarding@resend.dev>',
+            from: 'Globos y Fiesta <noreply@globosyfiesta.store>',
             to: email,
             subject: '🔐 Recuperar contraseña - Globos y Fiesta',
             html: plantillaRecuperacion(codigo, nombre)

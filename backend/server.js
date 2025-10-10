@@ -23,8 +23,12 @@ const corsOptions = {
         
         const allowedOrigins = [
             process.env.FRONTEND_URL,
-            'http://localhost:3000', // Para desarrollo local
-            'http://localhost:3001'  // Por si usas otro puerto
+            'https://globosyfiesta.store',           // Dominio propio
+            'https://www.globosyfiesta.store',       // Dominio propio con www
+            'https://globosyfiesta.vercel.app',      // Vercel (backup)
+            'http://localhost:3000',                 // Para desarrollo local
+            'http://localhost:3001',                 // Por si usas otro puerto
+            'http://localhost:5173'                  // Vite dev server
         ].filter(Boolean); // Remover valores undefined/null
         
         if (allowedOrigins.includes(origin)) {
@@ -107,54 +111,17 @@ app.use('/api/ventas', require('./routes/ventas'));
 app.use('/api/reportes', require('./routes/reportes'));
 app.use('/api/pedidos', require('./routes/pedidos'));
 
-// Ruta pública para el catálogo de productos (para clientes) con paginación
+// Ruta pública para el catálogo de productos (para clientes)
 app.get('/api/catalog', async (req, res) => {
     try {
         const Product = require('./models/Product');
-        
-        // Parámetros de paginación
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 12; // 12 productos por página
-        const skip = (page - 1) * limit;
-        
-        // Filtros opcionales
-        const filtros = { activo: true };
-        
-        // Filtro por categoría
-        if (req.query.categoria && req.query.categoria !== 'todos') {
-            filtros.categoria = req.query.categoria;
-        }
-        
-        // Filtro de búsqueda
-        if (req.query.buscar) {
-            const buscar = req.query.buscar.trim();
-            filtros.$or = [
-                { nombre: { $regex: buscar, $options: 'i' } },
-                { descripcion: { $regex: buscar, $options: 'i' } }
-            ];
-        }
-
-        // Consulta con paginación
-        const productos = await Product.find(filtros)
+        const productos = await Product.find({ activo: true })
             .select('nombre descripcion categoria precioVenta stock imagenUrl color tamaño tipoGlobo')
-            .sort({ categoria: 1, nombre: 1 })
-            .skip(skip)
-            .limit(limit);
-
-        // Contar total de productos para la paginación
-        const total = await Product.countDocuments(filtros);
+            .sort({ categoria: 1, nombre: 1 });
 
         res.json({
             success: true,
-            productos,
-            pagination: {
-                currentPage: page,
-                totalPages: Math.ceil(total / limit),
-                totalItems: total,
-                itemsPerPage: limit,
-                hasNextPage: page < Math.ceil(total / limit),
-                hasPrevPage: page > 1
-            }
+            productos
         });
     } catch (error) {
         console.error('Error en catálogo público:', error);
@@ -192,7 +159,7 @@ const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-    console.log(`🌍 Entorno: ${process.env.NODE_ENV}`);
+    console.log(`🌐 Entorno: ${process.env.NODE_ENV}`);
     console.log(`🎈 Sistema: Globos y Fiesta v2.0`);
     console.log(`📱 Vista Cliente: Catálogo público disponible`);
     console.log(`🔧 Vista Admin: Dashboard y gestión completa`);

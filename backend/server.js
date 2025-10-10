@@ -15,32 +15,19 @@ app.use(helmet({
 }));
 app.use(compression());
 
-// CORS configuration for production
-const corsOptions = {
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        const allowedOrigins = [
-            process.env.FRONTEND_URL,
-            'https://globosyfiesta.store',           // Dominio propio
-            'https://www.globosyfiesta.store',       // Dominio propio con www
-            'https://globosyfiesta.vercel.app',      // Vercel (backup)
-            'http://localhost:3000',                 // Para desarrollo local
-            'http://localhost:3001',                 // Por si usas otro puerto
-            'http://localhost:5173'                  // Vite dev server
-        ].filter(Boolean); // Remover valores undefined/null
-        
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('No permitido por CORS'));
-        }
-    },
+// CORS configuration - Configuración simplificada que funciona
+app.use(cors({
+    origin: [
+        'https://globosyfiesta.store',
+        'https://www.globosyfiesta.store',
+        'https://globosyfiesta.vercel.app',
+        'http://localhost:3000',
+        'http://localhost:5173'
+    ],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-};
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));

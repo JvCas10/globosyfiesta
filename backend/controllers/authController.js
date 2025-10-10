@@ -2,6 +2,8 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
+const VerificationCode = require('../models/VerificationCode');
+
 
 // Generar JWT
 const generateToken = (userId) => {
@@ -293,6 +295,7 @@ exports.verificarToken = async (req, res) => {
 
 // Registro específico para clientes
 // Registro específico para clientes (público)
+// Registro específico para clientes (público)
 exports.registroCliente = async (req, res) => {
     try {
         console.log('🟡 Registro de cliente:', req.body);
@@ -313,6 +316,7 @@ exports.registroCliente = async (req, res) => {
         const usuarioExistente = await User.findOne({ email: email.toLowerCase() });
         if (usuarioExistente) {
             return res.status(400).json({
+                success: false,
                 error: 'Usuario ya existe',
                 message: 'Ya existe una cuenta con este email'
             });
@@ -326,17 +330,33 @@ exports.registroCliente = async (req, res) => {
             telefono: telefono.trim(),
             rol: 'cliente',
             activo: true
-            // Sin permisos - los clientes no necesitan permisos administrativos
         });
 
         await nuevoCliente.save();
 
+// Generar código de 6 dígitos
+const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+
+// Eliminar códigos anteriores (por seguridad)
+await VerificationCode.deleteMany({ userId: nuevoCliente._id });
+
+// Crear y guardar nuevo código
+await VerificationCode.create({
+  userId: nuevoCliente._id,
+  code: codigo,
+  expiracion: Date.now() + 15 * 60 * 1000 // 15 minutos
+});
+
+// Enviar email con el código
+await enviarCorreoVerificacion(nuevoCliente.email, codigo);
         // Generar token
         const token = generateToken(nuevoCliente._id);
 
         console.log('✅ Cliente registrado exitosamente:', nuevoCliente.email);
 
-        res.status(201).json({
+        // ✅ RESPUESTA ESTANDARIZADA
+        return res.status(200).json({
+            success: true,
             message: 'Cuenta creada exitosamente',
             token,
             user: nuevoCliente.datosSegurosPerfil()
@@ -344,9 +364,45 @@ exports.registroCliente = async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error en registro de cliente:', error);
-        res.status(500).json({
+        return res.status(500).json({
+            success: false,
             error: 'Error interno del servidor',
             message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
         });
     }
+};
+
+// ✅ NUEVO CONTROLADOR: Verificar código de email
+exports.verificarCodigo = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    const usuario = await User.findOne({ email: email.toLowerCase() });
+
+    if (!usuario) {
+      return res.status(404).json({ message: 'No existe una cuenta con este email' });
+    }
+
+    const registro = await VerificationCode.findOne({ userId: usuario._id });
+
+    if (!registro) {
+      return res.status(400).json({ message: 'No se encontró ningún código para este usuario' });
+    }
+
+    if (registro.code !== code) {
+      return res.status(400).json({ message: 'El código no es válido o ha expirado' });
+    }
+
+    if (registro.expiracion < Date.now()) {
+      return res.status(400).json({ message: 'El código ha expirado' });
+    }
+
+    usuario.activo = true;
+    await usuario.save();
+    await VerificationCode.deleteMany({ userId: usuario._id });
+
+    return res.status(200).json({ success: true, message: 'Cuenta verificada correctamente' });
+  } catch (error) {
+    console.error('❌ Error al verificar código:', error);
+    return res.status(500).json({ message: 'Error interno al verificar el código' });
+  }
 };

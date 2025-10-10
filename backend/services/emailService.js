@@ -1,23 +1,7 @@
 // backend/services/emailService.js
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// Configurar transportador de Gmail
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER, // Tu email de Gmail
-        pass: process.env.EMAIL_APP_PASSWORD // La contraseña de aplicación de 16 dígitos
-    }
-});
-
-// Verificar configuración
-transporter.verify(function(error, success) {
-    if (error) {
-        console.error('❌ Error en configuración de email:', error);
-    } else {
-        console.log('✅ Servidor de email listo para enviar mensajes');
-    }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Generar código de 6 dígitos
 const generarCodigo = () => {
@@ -39,7 +23,6 @@ const plantillaVerificacion = (codigo, nombre) => `
         .code-box { background: #f8f9fa; border: 2px dashed #3498db; padding: 20px; text-align: center; margin: 20px 0; border-radius: 10px; }
         .code { font-size: 32px; font-weight: bold; color: #3498db; letter-spacing: 3px; font-family: 'Courier New', monospace; }
         .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
-        .btn { background: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -60,7 +43,7 @@ const plantillaVerificacion = (codigo, nombre) => `
             <p><strong>Este código expira en 15 minutos.</strong></p>
             <p>Si no solicitaste este registro, puedes ignorar este email.</p>
             
-            <p>¡Esperamos hacer tu próxima celebración increíble! 🎉</p>
+            <p>¡Esperamos hacer tu próxima celebración increíble!</p>
         </div>
         <div class="footer">
             <p>Globos y Fiesta - Todo para hacer tu celebración especial</p>
@@ -83,10 +66,10 @@ const plantillaRecuperacion = (codigo, nombre) => `
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .header { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; padding: 30px; text-align: center; }
         .content { padding: 30px; }
-        .code-box { background: #fee; border: 2px dashed #e74c3c; padding: 20px; text-align: center; margin: 20px 0; border-radius: 10px; }
+        .code-box { background: #fff3cd; border: 2px dashed #f39c12; padding: 20px; text-align: center; margin: 20px 0; border-radius: 10px; }
         .code { font-size: 32px; font-weight: bold; color: #e74c3c; letter-spacing: 3px; font-family: 'Courier New', monospace; }
+        .warning { background: #fff3cd; border-left: 4px solid #f39c12; padding: 15px; margin: 20px 0; }
         .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
-        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 8px; margin: 15px 0; }
     </style>
 </head>
 <body>
@@ -96,7 +79,7 @@ const plantillaRecuperacion = (codigo, nombre) => `
             <h2>Recuperación de Contraseña</h2>
         </div>
         <div class="content">
-            <h3>¡Hola ${nombre}!</h3>
+            <h3>Hola ${nombre},</h3>
             <p>Recibimos una solicitud para restablecer tu contraseña. Usa el siguiente código para crear una nueva contraseña:</p>
             
             <div class="code-box">
@@ -127,20 +110,20 @@ const plantillaRecuperacion = (codigo, nombre) => `
 // Enviar email de verificación
 const enviarEmailVerificacion = async (email, nombre, codigo) => {
     try {
-        const mailOptions = {
-            from: {
-                name: 'Globos y Fiesta',
-                address: process.env.EMAIL_USER
-            },
+        const { data, error } = await resend.emails.send({
+            from: 'Globos y Fiesta <onboarding@resend.dev>',
             to: email,
             subject: '🎈 Verifica tu email - Globos y Fiesta',
-            html: plantillaVerificacion(codigo, nombre),
-            text: `Hola ${nombre}, tu código de verificación es: ${codigo}. Este código expira en 15 minutos.`
-        };
+            html: plantillaVerificacion(codigo, nombre)
+        });
 
-        const info = await transporter.sendMail(mailOptions);
-        console.log('✅ Email de verificación enviado:', info.messageId);
-        return { success: true, messageId: info.messageId };
+        if (error) {
+            console.error('❌ Error enviando email:', error);
+            return { success: false, error: error.message };
+        }
+
+        console.log('✅ Email de verificación enviado:', data.id);
+        return { success: true, messageId: data.id };
     } catch (error) {
         console.error('❌ Error enviando email de verificación:', error);
         return { success: false, error: error.message };
@@ -150,20 +133,20 @@ const enviarEmailVerificacion = async (email, nombre, codigo) => {
 // Enviar email de recuperación
 const enviarEmailRecuperacion = async (email, nombre, codigo) => {
     try {
-        const mailOptions = {
-            from: {
-                name: 'Globos y Fiesta',
-                address: process.env.EMAIL_USER
-            },
+        const { data, error } = await resend.emails.send({
+            from: 'Globos y Fiesta <onboarding@resend.dev>',
             to: email,
             subject: '🔐 Recuperar contraseña - Globos y Fiesta',
-            html: plantillaRecuperacion(codigo, nombre),
-            text: `Hola ${nombre}, tu código de recuperación es: ${codigo}. Este código expira en 15 minutos.`
-        };
+            html: plantillaRecuperacion(codigo, nombre)
+        });
 
-        const info = await transporter.sendMail(mailOptions);
-        console.log('✅ Email de recuperación enviado:', info.messageId);
-        return { success: true, messageId: info.messageId };
+        if (error) {
+            console.error('❌ Error enviando email:', error);
+            return { success: false, error: error.message };
+        }
+
+        console.log('✅ Email de recuperación enviado:', data.id);
+        return { success: true, messageId: data.id };
     } catch (error) {
         console.error('❌ Error enviando email de recuperación:', error);
         return { success: false, error: error.message };

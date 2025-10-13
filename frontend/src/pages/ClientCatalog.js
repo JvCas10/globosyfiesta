@@ -614,13 +614,19 @@ useEffect(() => {
 
     <div className="header-actions">
       {user ? (
-        <div className="user-menu">
+  <div className="user-menu">
   <span>Hola, {user.nombre}!</span>
 
   <button onClick={handleLogout} className="btn btn-secondary">
     Cerrar Sesión
   </button>
 
+  {/* Botón para rastrear pedido - PARA TODOS LOS USUARIOS */}
+  <a href="/seguimiento" className="btn-track-order">
+    📍 Rastrear Pedido
+  </a>
+
+  {/* Botón Panel Admin - SOLO para admin/empleado/propietario */}
   {(['admin', 'empleado', 'propietario'].includes(user.rol?.toLowerCase())) && (
     <a href="/dashboard" className="btn-admin-access">
       🎛️ Panel Admin

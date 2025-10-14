@@ -102,7 +102,7 @@ app.get('/api/catalog', async (req, res) => {
     try {
         const Product = require('./models/Product');
         const productos = await Product.find({ activo: true })
-            .select('nombre descripcion categoria precioVenta stock imagenUrl color tamaño tipoGlobo')
+            .select('nombre descripcion categoria precioVenta stock imagenUrl color tamano tipoGlobo')
             .sort({ categoria: 1, nombre: 1 });
 
         res.json({

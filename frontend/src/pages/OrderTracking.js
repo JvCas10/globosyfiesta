@@ -119,6 +119,12 @@ const OrderTracking = () => {
 
   return (
     <div className="order-tracking-page">
+      <button 
+      className="order-btn-volver-catalogo"
+      onClick={() => window.location.href = '/catalogo'}
+    >
+      ← Volver al Catálogo
+    </button>
       <div className="order-tracking-header">
         <h1>📦 Rastrear Tu Pedido</h1>
         <p>Ingresa tu código de seguimiento para ver el estado de tu pedido</p>

@@ -6,7 +6,6 @@ import {
   generarPDFDashboard, 
   generarPDFVentas, 
   generarPDFInventario, 
-  generarPDFClientes 
 } from '../utils/pdfGenerator.js';
 import './Reportes.css';
 
@@ -14,7 +13,6 @@ const Reportes = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [reporteVentas, setReporteVentas] = useState(null);
   const [reporteInventario, setReporteInventario] = useState(null);
-  const [reporteClientes, setReporteClientes] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -31,9 +29,6 @@ const Reportes = () => {
     stockBajo: false
   });
 
-  const [filtrosClientes, setFiltrosClientes] = useState({
-    tipoCliente: 'todos'
-  });
 
   useEffect(() => {
     if (hasPermission('reportes')) {
@@ -83,20 +78,6 @@ const Reportes = () => {
     }
   };
 
-  const fetchReporteClientes = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('/api/reportes/clientes', {
-        params: filtrosClientes
-      });
-      setReporteClientes(response.data);
-    } catch (error) {
-      console.error('Error al cargar reporte de clientes:', error);
-      setError('Error al cargar el reporte de clientes');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -108,9 +89,6 @@ const Reportes = () => {
         break;
       case 'inventario':
         if (!reporteInventario) fetchReporteInventario();
-        break;
-      case 'clientes':
-        if (!reporteClientes) fetchReporteClientes();
         break;
       default:
         break;
@@ -133,12 +111,6 @@ const Reportes = () => {
   const handleDescargarInventario = () => {
     if (reporteInventario) {
       generarPDFInventario(reporteInventario, isOwner());
-    }
-  };
-
-  const handleDescargarClientes = () => {
-    if (reporteClientes) {
-      generarPDFClientes(reporteClientes);
     }
   };
 
@@ -175,11 +147,6 @@ const Reportes = () => {
             📥 Descargar Inventario PDF
           </button>
         )}
-        {activeTab === 'clientes' && reporteClientes && (
-          <button className="reportes-btn-download" onClick={handleDescargarClientes}>
-            📥 Descargar Clientes PDF
-          </button>
-        )}
       </div>
 
       {error && (
@@ -208,12 +175,6 @@ const Reportes = () => {
             onClick={() => handleTabChange('inventario')}
           >
             📦 Inventario
-          </button>
-          <button
-            className={`reportes-tab-btn ${activeTab === 'clientes' ? 'active' : ''}`}
-            onClick={() => handleTabChange('clientes')}
-          >
-            👥 Clientes
           </button>
         </div>
       </div>
@@ -622,111 +583,6 @@ const Reportes = () => {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Reporte de Clientes */}
-      {activeTab === 'clientes' && (
-        <div>
-          <div className="reportes-card">
-            <div className="reportes-card-header">
-              👥 Filtros del Reporte de Clientes
-            </div>
-            <div className="reportes-card-body">
-              <div className="reportes-filters-grid reportes-filters-grid-2">
-                <div className="reportes-form-field">
-                  <label className="reportes-form-label">Tipo de Cliente</label>
-                  <select
-                    className="reportes-form-select"
-                    value={filtrosClientes.tipoCliente}
-                    onChange={(e) => setFiltrosClientes(prev => ({ ...prev, tipoCliente: e.target.value }))}
-                  >
-                    <option value="todos">Todos</option>
-                    <option value="individual">Individual</option>
-                    <option value="frecuente">Frecuente</option>
-                    <option value="evento">Evento</option>
-                    <option value="empresa">Empresa</option>
-                  </select>
-                </div>
-                <button className="reportes-btn-generate" onClick={fetchReporteClientes}>
-                  Generar Reporte
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {reporteClientes && (
-            <div>
-              <div className="reportes-card">
-                <div className="reportes-card-header">
-                  📊 Resumen de Clientes
-                </div>
-                <div className="reportes-card-body">
-                  <div className="reportes-stats-grid">
-                    <div className="reportes-stat-box">
-                      <div className="reportes-stat-value reportes-stat-blue">
-                        {reporteClientes.resumen.totalClientes}
-                      </div>
-                      <div className="reportes-stat-label">Total Clientes</div>
-                    </div>
-                    <div className="reportes-stat-box">
-                      <div className="reportes-stat-value reportes-stat-green">
-                        {reporteClientes.resumen.clientesActivos}
-                      </div>
-                      <div className="reportes-stat-label">Clientes Activos</div>
-                    </div>
-                    <div className="reportes-stat-box">
-                      <div className="reportes-stat-value reportes-stat-purple">
-                        {reporteClientes.resumen.clientesFrecuentes}
-                      </div>
-                      <div className="reportes-stat-label">Clientes Frecuentes</div>
-                    </div>
-                    <div className="reportes-stat-box">
-                      <div className="reportes-stat-value reportes-stat-orange">
-                        {reporteClientes.resumen.clientesNuevos}
-                      </div>
-                      <div className="reportes-stat-label">Clientes Nuevos</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="reportes-card">
-                <div className="reportes-card-header">
-                  🏆 Top 10 Clientes
-                </div>
-                <div className="reportes-card-body">
-                  <div className="reportes-table-wrapper">
-                    <table className="reportes-table">
-                      <thead>
-                        <tr>
-                          <th>Cliente</th>
-                          <th>Tipo</th>
-                          <th>Compras</th>
-                          <th>Total Gastado</th>
-                          <th>Promedio</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {reporteClientes.topClientes.map((cliente, index) => (
-                          <tr key={cliente._id}>
-                            <td>
-                              {index < 3 && ['🥇', '🥈', '🥉'][index] + ' '}
-                              {cliente.nombre}
-                            </td>
-                            <td>{cliente.tipoCliente}</td>
-                            <td>{cliente.numeroVentas}</td>
-                            <td>Q{cliente.totalCompras.toFixed(2)}</td>
-                            <td>Q{cliente.promedioCompra.toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
         </div>

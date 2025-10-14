@@ -69,7 +69,7 @@ function App() {
             <Route path="/catalogo" element={<ClientCatalog />} />
             <Route path="/catalog" element={<Navigate to="/catalogo" replace />} />
             <Route path="/seguimiento" element={<OrderTracking />} />
-            
+            <Route path="/order-tracking" element={<OrderTracking />} />
             {/* Login para administradores */}
             <Route path="/login" element={<Login />} />
             <Route path="/admin" element={<Login />} />

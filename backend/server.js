@@ -101,13 +101,68 @@ app.use('/api/pedidos', require('./routes/pedidos'));
 app.get('/api/catalog', async (req, res) => {
     try {
         const Product = require('./models/Product');
-        const productos = await Product.find({ activo: true })
-            .select('nombre descripcion categoria precioVenta stock imagenUrl color tamaño tipoGlobo')
-            .sort({ categoria: 1, nombre: 1 });
+
+        // Parámetros
+        const { categoria, buscar, page = 1, limit = 12 } = req.query;
+
+        // Helper local para búsqueda sin tildes
+        const buildAccentInsensitivePattern = (input) => {
+            if (!input) return '';
+            const map = [
+                { chars: 'aáàäâã', cls: '[aáàäâã]' },
+                { chars: 'eéèëê', cls: '[eéèëê]' },
+                { chars: 'iíìïî', cls: '[iíìïî]' },
+                { chars: 'oóòöôõ', cls: '[oóòöôõ]' },
+                { chars: 'uúùüû', cls: '[uúùüû]' },
+                { chars: 'nñ', cls: '[nñ]' }
+            ];
+            const specials = /[.*+?^${}()|[\]\\]/g;
+            const escaped = String(input).replace(specials, '\\$&');
+            let out = '';
+            for (const ch of escaped) {
+                const lower = ch.toLowerCase();
+                const entry = map.find(m => m.chars.includes(lower));
+                out += entry ? entry.cls : ch;
+            }
+            return out;
+        };
+
+        // Filtros base
+        const filtros = { activo: true };
+        if (categoria && categoria !== 'todos') {
+            filtros.categoria = categoria;
+        }
+        if (buscar) {
+            const pattern = buildAccentInsensitivePattern(buscar);
+            const regex = new RegExp(pattern, 'i');
+            filtros.$or = [
+                { nombre: { $regex: regex } },
+                { descripcion: { $regex: regex } }
+            ];
+        }
+
+        // Paginación
+        const skip = (Number(page) - 1) * Number(limit);
+        const [productos, total] = await Promise.all([
+            Product.find(filtros)
+                .select('nombre descripcion categoria precioVenta stock imagenUrl color tamano tipoGlobo')
+                .sort({ categoria: 1, nombre: 1 })
+                .skip(skip)
+                .limit(Number(limit)),
+            Product.countDocuments(filtros)
+        ]);
 
         res.json({
             success: true,
-            productos
+            productos,
+            pagination: {
+                currentPage: Number(page),
+                totalPages: Math.ceil(total / Number(limit)) || 1,
+                totalItems: total,
+                itemsPerPage: Number(limit),
+                hasNextPage: Number(page) < Math.ceil(total / Number(limit)),
+                hasPrevPage: Number(page) > 1
+            }
         });
     } catch (error) {
         console.error('Error en catálogo público:', error);

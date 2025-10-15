@@ -231,6 +231,19 @@ useEffect(() => {
     );
   };
 
+  // Normaliza texto removiendo tildes/diacríticos y pasando a minúsculas
+  const normalizeText = (text = "") => {
+    try {
+      return text
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+    } catch (e) {
+      // Fallback por si normalize no está disponible
+      return String(text).toLowerCase();
+    }
+  };
+
   // Validar formulario de checkout
   const validarFormulario = () => {
     const errores = [];
@@ -321,9 +334,10 @@ useEffect(() => {
   };
 
   const productosFiltrados = productos.filter((producto) => {
-    const coincideBusqueda =
-      producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      producto.descripcion?.toLowerCase().includes(busqueda.toLowerCase());
+    const term = normalizeText(busqueda);
+    const name = normalizeText(producto.nombre);
+    const desc = normalizeText(producto.descripcion || '');
+    const coincideBusqueda = name.includes(term) || desc.includes(term);
     return coincideBusqueda && producto.stock > 0;
   });
 
@@ -627,7 +641,7 @@ useEffect(() => {
   </a>
 
   {/* Botón Panel Admin - SOLO para admin/empleado/propietario */}
-  {(['admin', 'empleado', 'propietario'].includes(user.rol?.toLowerCase())) && (
+  {(['empleado', 'propietario'].includes(user.rol?.toLowerCase())) && (
     <a href="/dashboard" className="btn-admin-access">
       🎛️ Panel Admin
     </a>

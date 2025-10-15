@@ -234,9 +234,10 @@ const Productos = () => {
               >
                 <option value="todos">Todas las categorías</option>
                 <option value="globos">Globos</option>
-                <option value="decoracion">Decoración</option>
-                <option value="accesorios">Accesorios</option>
+                <option value="decoraciones">Decoraciones</option>
+                <option value="articulos-fiesta">Artículos de fiesta</option>
                 <option value="servicios">Servicios</option>
+                <option value="otros">Otros</option>
               </select>
             </div>
 
@@ -445,9 +446,10 @@ const Productos = () => {
                       required
                     >
                       <option value="globos">Globos</option>
-                      <option value="decoracion">Decoración</option>
-                      <option value="accesorios">Accesorios</option>
+                      <option value="decoraciones">Decoraciones</option>
+                      <option value="articulos-fiesta">Artículos de fiesta</option>
                       <option value="servicios">Servicios</option>
+                      <option value="otros">Otros</option>
                     </select>
                   </div>
 
@@ -507,8 +509,11 @@ const Productos = () => {
                           onChange={(e) => setFormData({...formData, tipoGlobo: e.target.value})}
                         >
                           <option value="latex">Látex</option>
-                          <option value="metalizado">Metalizado</option>
-                          <option value="burbuja">Burbuja</option>
+                          <option value="foil">Foil</option>
+                          <option value="metalico">Metálico</option>
+                          <option value="transparente">Transparente</option>
+                          <option value="biodegradable">Biodegradable</option>
+                          <option value="otros">Otros</option>
                         </select>
                       </div>
 

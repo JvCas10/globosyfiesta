@@ -3,6 +3,28 @@ const Product = require('../models/Product');
 const { uploadToCloudinary, deleteFromCloudinary, updateImageCloudinary } = require('../utils/cloudinary');
 const fs = require('fs');
 
+// Helper: construir patrón regex insensible a tildes/ñ
+const buildAccentInsensitivePattern = (input) => {
+    if (!input) return '';
+    const map = [
+        { chars: 'aáàäâã', cls: '[aáàäâã]' },
+        { chars: 'eéèëê', cls: '[eéèëê]' },
+        { chars: 'iíìïî', cls: '[iíìïî]' },
+        { chars: 'oóòöôõ', cls: '[oóòöôõ]' },
+        { chars: 'uúùüû', cls: '[uúùüû]' },
+        { chars: 'nñ', cls: '[nñ]' }
+    ];
+    const specials = /[.*+?^${}()|[\]\\]/g; // escapar caracteres regex
+    const escaped = String(input).replace(specials, '\\$&');
+    let out = '';
+    for (const ch of escaped) {
+        const lower = ch.toLowerCase();
+        const entry = map.find(m => m.chars.includes(lower));
+        out += entry ? entry.cls : ch;
+    }
+    return out;
+};
+
 // Crear producto
 exports.crearProducto = async (req, res) => {
     let imagenUrl = '';
@@ -144,9 +166,11 @@ exports.obtenerProductos = async (req, res) => {
         }
 
         if (buscar) {
+            const pattern = buildAccentInsensitivePattern(buscar);
+            const regex = new RegExp(pattern, 'i');
             filtros.$or = [
-                { nombre: { $regex: buscar, $options: 'i' } },
-                { descripcion: { $regex: buscar, $options: 'i' } }
+                { nombre: { $regex: regex } },
+                { descripcion: { $regex: regex } }
             ];
         }
 
@@ -356,7 +380,20 @@ exports.buscarProductos = async (req, res) => {
             });
         }
 
-        const productos = await Product.buscarProductos(q);
+        const pattern = buildAccentInsensitivePattern(q);
+        const regex = new RegExp(pattern, 'i');
+        const productos = await Product.find({
+            $and: [
+                { activo: true },
+                {
+                    $or: [
+                        { nombre: { $regex: regex } },
+                        { descripcion: { $regex: regex } },
+                        { categoria: { $regex: regex } }
+                    ]
+                }
+            ]
+        });
 
         res.json({
             productos,

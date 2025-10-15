@@ -32,7 +32,7 @@ const ProtectedAdminRoute = ({ children }) => {
     return <Navigate to="/catalogo" replace />;
   }
   
-  if (user.rol !== 'admin' && user.rol !== 'empleado') {
+  if (user.rol !== 'propietario' && user.rol !== 'empleado') {
     toast.error('No tienes permisos de administrador', {
       icon: '⛔'
     });
